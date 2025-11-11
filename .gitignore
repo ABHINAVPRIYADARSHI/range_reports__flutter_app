@@ -1,0 +1,37 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.generated/
+build/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Android
+**/android/local.properties
+**/android/.gradle
+**/android/app/debug.keystore
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
+
+# npm / node (if any)
+node_modules/
+
+# secrets/env
+.env
+.secrets/
+secrets.dart
+config/*.key
+*.jks
+*.keystore
+
+# logs
+logs/
+*.log
