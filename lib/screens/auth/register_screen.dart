@@ -90,7 +90,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       username: _username.text.trim(),
       password: _password.text,
       name: _name.text.trim(),
-      email: _email.text.trim().isEmpty ? null : _email.text.trim(),
+      // email: _email.text.trim().isEmpty ? null : _email.text.trim(),
     );
     if (err != null) {
       setState(() {

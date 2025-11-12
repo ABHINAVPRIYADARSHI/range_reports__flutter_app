@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  supabase_flutter: ^2.10.3
+  shared_preferences: ^2.0.15
   provider: ^6.0.5
   uuid: ^4.3.3 
 

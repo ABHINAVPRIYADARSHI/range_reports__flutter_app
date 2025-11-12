@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/auth_form_field.dart';
 import '../../routes.dart';
+import '../../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +18,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _password = TextEditingController();
   bool _loading = false;
   String? _error;
+
+  // Optional: if you want to use supabase helper directly anywhere
+  final SupabaseService _supabaseService = SupabaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +72,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: ElevatedButton(
                             onPressed: _loading ? null : _onLogin,
                             child: _loading
-                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
                                 : const Text('Login'),
                           ),
                         ),
@@ -96,19 +104,47 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       _error = null;
     });
+
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final err = await auth.login(username: _username.text.trim(), password: _password.text.trim());
+    final username = _username.text.trim();
+    final password = _password.text;
+
+    if (username.isEmpty || password.isEmpty) {
+      setState(() {
+        _error = 'Please enter username and password';
+        _loading = false;
+      });
+      return;
+    }
+
+    final err = await auth.login(username, password);
     if (err != null) {
+      // auth.login returns an error message string on failure
       setState(() {
         _error = err;
         _loading = false;
       });
       return;
     }
+
+    // login succeeded; check status
+    if (auth.status != 'active') {
+      setState(() {
+        _error = 'Account is ${auth.status}. Please wait for admin approval.';
+        _loading = false;
+      });
+      return;
+    }
+
+    // successful and active — navigate to home
     setState(() {
       _loading = false;
+      _error = null;
     });
-    if (mounted) Navigator.pushReplacementNamed(context, Routes.home);
+
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, Routes.home);
+    }
   }
 
   @override

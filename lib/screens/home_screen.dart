@@ -10,7 +10,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final themeProv = Provider.of<ThemeProvider>(context, listen: false);
-    final username = auth.user?.username ?? 'Officer';
+    final username = auth.user?['username'] as String? ?? 'Officer';
+
 
     return Scaffold(
       appBar: AppBar(
