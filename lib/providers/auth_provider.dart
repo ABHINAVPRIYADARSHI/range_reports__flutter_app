@@ -1,7 +1,55 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Simple ActiveScope model used by the UI
+class ActiveScope {
+  final String role; // 'range_officer', 'nodal_officer', 'admin'
+  final String commissionerateId;
+  final String? commissionerateName;
+  final String? divisionId;
+  final String? divisionName;
+  final String? rangeId;
+  final String? rangeName;
+  final String label;
+
+  ActiveScope({
+    required this.role,
+    required this.commissionerateId,
+    this.commissionerateName,
+    this.divisionId,
+    this.divisionName,
+    this.rangeId,
+    this.rangeName,
+    required this.label,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'role': role,
+        'commissionerateId': commissionerateId,
+        'commissionerateName': commissionerateName,
+        'divisionId': divisionId,
+        'divisionName': divisionName,
+        'rangeId': rangeId,
+        'rangeName': rangeName,
+        'label': label,
+      };
+
+  static ActiveScope? fromJson(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    return ActiveScope(
+      role: json['role'] as String,
+      commissionerateId: json['commissionerateId'] as String,
+      commissionerateName: json['commissionerateName'] as String?,
+      divisionId: json['divisionId'] as String?,
+      divisionName: json['divisionName'] as String?,
+      rangeId: json['rangeId'] as String?,
+      rangeName: json['rangeName'] as String?,
+      label: json['label'] as String,
+    );
+  }
+}
 
 class AuthProvider extends ChangeNotifier {
   String? _userId;
@@ -10,9 +58,14 @@ class AuthProvider extends ChangeNotifier {
   String? _status;
   List<Map<String, dynamic>> _roles = [];
 
-  bool get isLoggedIn => _userId != null && _status == 'active';
+  ActiveScope? _activeScope;
 
-  /// simple user getter for older UI expecting `auth.user`
+  // prefs keys
+  static const _kPrefsUserKey = 'app_user_row';
+  static const _kPrefsActiveScope = 'app_active_scope';
+
+  // getters
+  bool get isLoggedIn => _userId != null && _status == 'active';
   Map<String, dynamic>? get user {
     if (_userId == null) return null;
     return {
@@ -24,33 +77,41 @@ class AuthProvider extends ChangeNotifier {
     };
   }
 
-  List<Map<String, dynamic>> get roles => _roles;
   String? get userId => _userId;
   String? get username => _username;
   String? get status => _status;
-
-  static const _kPrefsUserKey = 'app_user_row';
+  List<Map<String, dynamic>> get roles => List.unmodifiable(_roles);
+  ActiveScope? get activeScope => _activeScope;
 
   AuthProvider() {
     _tryRestoreFromPrefs();
   }
 
+  // restore user + scope on startup
   Future<void> _tryRestoreFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_kPrefsUserKey);
-    if (raw == null) return;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      _userId = map['user_id'] as String?;
-      _username = map['username'] as String?;
-      _name = map['name'] as String?;
-      _status = map['status'] as String?;
-      final rolesList = map['roles'] as List<dynamic>? ?? [];
-      _roles = rolesList.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-      notifyListeners();
-    } catch (e) {
-      // ignore corrupted prefs
+    if (raw != null) {
+      try {
+        final map = jsonDecode(raw) as Map<String, dynamic>;
+        _userId = map['user_id'] as String?;
+        _username = map['username'] as String?;
+        _name = map['name'] as String?;
+        _status = map['status'] as String?;
+        final rolesList = map['roles'] as List<dynamic>? ?? [];
+        _roles = rolesList.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } catch (_) {}
     }
+
+    final rawScope = prefs.getString(_kPrefsActiveScope);
+    if (rawScope != null) {
+      try {
+        final sMap = jsonDecode(rawScope) as Map<String, dynamic>;
+        _activeScope = ActiveScope.fromJson(sMap);
+      } catch (_) {}
+    }
+
+    notifyListeners();
   }
 
   Future<void> _saveToPrefs() async {
@@ -65,13 +126,22 @@ class AuthProvider extends ChangeNotifier {
     await prefs.setString(_kPrefsUserKey, jsonEncode(map));
   }
 
+  Future<void> _saveActiveScopeToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_activeScope == null) {
+      await prefs.remove(_kPrefsActiveScope);
+      return;
+    }
+    await prefs.setString(_kPrefsActiveScope, jsonEncode(_activeScope!.toJson()));
+  }
+
   Future<void> _clearPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kPrefsUserKey);
+    await prefs.remove(_kPrefsActiveScope);
   }
 
-  /// Register via rpc_register (creates pending user and hashes password server-side)
-  /// Returns null on success, or string error message.
+  /// Register (RPC wrapper) - returns null on success, or string message on error
   Future<String?> register({
     required String username,
     required String password,
@@ -90,34 +160,70 @@ class AuthProvider extends ChangeNotifier {
       if (res.error != null) {
         return res.error!.message;
       }
-      // success: res.data will contain created user info (as list)
       return null;
     } catch (e) {
       return 'Registration failed: $e';
     }
   }
 
-  /// Call rpc_login which verifies credentials and returns user row + roles
-  /// Returns null on success; returns string error message on failure.
+  /// Login using rpc_login (server-side verifies password)
   Future<String?> login(String usernameInput, String password) async {
     final client = Supabase.instance.client;
     try {
-      final payload = {
-        'p_username': usernameInput,
-        'p_password': password,
-      };
-
-      final response = await client.rpc('rpc_login', params: {
-        'payload': payload,
+      final dynamic rawResponse = await client.rpc('rpc_login', params: {
+        'payload': {'p_username': usernameInput, 'p_password': password}
       });
 
-      // The response is already the data array
-      final data = response as List<dynamic>;
-      if (data.isEmpty) {
+      // rawResponse may be:
+      //  - a List<dynamic> (parsed data) -> use it directly
+      //  - or a PostgrestResponse-like object with .error and .data
+      List<dynamic>? dataList;
+      String? rpcError;
+
+      if (rawResponse is List) {
+        dataList = rawResponse;
+      } else {
+        // try to handle PostgrestResponse-like object
+        try {
+          // some versions allow .error and .data
+          final dynamic maybeError = rawResponse.error;
+          final dynamic maybeData = rawResponse.data;
+          if (maybeError != null) {
+            rpcError = (maybeError is String) ? maybeError : maybeError.toString();
+          } else if (maybeData is List) {
+            dataList = maybeData;
+          } else if (maybeData != null) {
+            // sometimes data is a single object
+            dataList = [maybeData];
+          }
+        } catch (_) {
+          // fallback: try to treat rawResponse as map-like
+          try {
+            final asMap = Map<String, dynamic>.from(rawResponse as Map);
+            if (asMap.containsKey('error')) {
+              rpcError = asMap['error']?.toString();
+            }
+            if (asMap.containsKey('data')) {
+              final d = asMap['data'];
+              if (d is List) dataList = d;
+              else if (d != null) dataList = [d];
+            }
+          } catch (__) {
+            // couldn't interpret response shape
+          }
+        }
+      }
+
+      if (rpcError != null) {
+        return 'Login failed: $rpcError';
+      }
+
+      if (dataList == null || dataList.isEmpty) {
+        // no rows returned -> invalid credentials
         return 'Invalid username or password';
       }
 
-      final row = data[0] as Map<String, dynamic>;
+      final row = Map<String, dynamic>.from(dataList[0] as Map);
       _userId = row['user_id']?.toString();
       _username = row['username'] as String?;
       _name = row['name'] as String?;
@@ -129,51 +235,99 @@ class AuthProvider extends ChangeNotifier {
         _roles = [];
       }
 
+      // If user has exactly one scope, set it automatically
+      if (_roles.length == 1) {
+        _activeScope = _scopeFromRoleMap(_roles.first);
+        await _saveActiveScopeToPrefs();
+      } else {
+        // validate persisted scope still present in roles
+        if (_activeScope != null) {
+          final stillPresent = _roles.any((r) =>
+              (r['role'] == _activeScope!.role) &&
+              ((r['range_id']?.toString() ?? '') == (_activeScope!.rangeId ?? '')) &&
+              ((r['division_id']?.toString() ?? '') == (_activeScope!.divisionId ?? '')) &&
+              ((r['commissionerate_id']?.toString() ?? '') == _activeScope!.commissionerateId));
+          if (!stillPresent) {
+            _activeScope = null;
+            await _saveActiveScopeToPrefs();
+          }
+        }
+      }
+
       await _saveToPrefs();
       notifyListeners();
-
       return null;
-    } catch (e) {
+    } catch (e, st) {
+      // helpful debug info while developing
+      debugPrint('login exception: $e\n$st');
       return 'Login error: $e';
     }
   }
 
+
+  /// Logout
   Future<void> logout() async {
     _userId = null;
     _username = null;
     _name = null;
     _status = null;
     _roles = [];
+    _activeScope = null;
     await _clearPrefs();
-    // no supabase auth signOut since we're not using Supabase Auth
     notifyListeners();
   }
 
-    /// Refresh roles from DB (safe only if _userId is not null)
-  Future<void> refreshRolesFromDb() async {
-    if (_userId == null) return; // guard nullable _userId
+  /// Set active scope (persist if requested)
+  Future<void> setActiveScope(ActiveScope scope, {bool persist = true}) async {
+    _activeScope = scope;
+    if (persist) await _saveActiveScopeToPrefs();
+    notifyListeners();
+  }
 
-    final client = Supabase.instance.client;
-    try {
-      final dynamic res = await client
-          .from('user_roles')
-          .select('role, commissionerate_id, division_id, range_id')
-          .eq('user_id', _userId!);
+  Future<void> clearActiveScope() async {
+    _activeScope = null;
+    await _saveActiveScopeToPrefs();
+    notifyListeners();
+  }
 
-      // The client library version you're using returns the parsed data directly.
-      // If it returned an error object it would have thrown; so handle the data case.
-      if (res is List) {
-        final list = res as List<dynamic>;
-        _roles = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-        await _saveToPrefs();
-        notifyListeners();
-      } else {
-        // Unexpected response type — do nothing (or optionally log)
-      }
-    } catch (e) {
-      // Query failed (network, permission, etc.) — handle/log if needed
-      // print('refreshRolesFromDb error: $e');
-      return;
-    }
+  /// Utility to construct ActiveScope from a role row (user_roles JSON)
+  ActiveScope _scopeFromRoleMap(Map<String, dynamic> role) {
+  final String roleType = role['role'] ?? '';
+  final String comId = role['commissionerate_id'] ?? '';
+  final String divId = role['division_id'];
+  final String rngId = role['range_id'];
+
+  final String? comName = role['commissionerate_name'];
+  final String? divName = role['division_name'];
+  final String? rngName = role['range_name'];
+
+  // Build a friendly label for the UI
+  String label;
+  if (roleType == 'admin') {
+    label = '${comName ?? comId} (Admin)';
+  } else if (roleType == 'nodal_officer') {
+    label = '${divName ?? divId} — ${comName ?? comId}';
+  } else if (roleType == 'range_officer') {
+    label = '${rngName ?? rngId} — ${divName ?? divId}';
+  } else {
+    label = roleType;
+  }
+
+  return ActiveScope(
+    role: roleType,
+    commissionerateId: comId,
+    commissionerateName: comName,
+    divisionId: divId,
+    divisionName: divName,
+    rangeId: rngId,
+    rangeName: rngName,
+    label: label,
+  );
+}
+
+
+  /// Convenience: list of ActiveScope objects built from _roles
+  List<ActiveScope> get scopesFromRoles {
+    return _roles.map((r) => _scopeFromRoleMap(r)).toList();
   }
 }
