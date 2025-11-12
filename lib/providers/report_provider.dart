@@ -42,33 +42,48 @@ class ReportProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Inserts a new daily report
-  Future<void> insertDailyReport(DailyReport report) async {
+  // Inserts a new daily report. Returns an error message on failure.
+  Future<String?> insertDailyReport(DailyReport report) async {
     _isLoading = true;
     notifyListeners();
+    String? errorMessage;
 
     try {
       final client = Supabase.instance.client;
       await client.from('daily_reports').insert(report.toJson());
-    } catch (e) {
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        errorMessage = 'A report for this date has already been submitted.';
+      } else {
+        errorMessage = 'Database Error: ${e.message}';
+      }
       debugPrint('Error inserting report: $e');
-      // Optionally, rethrow or handle the error for the UI
+    } catch (e) {
+      errorMessage = 'An unexpected error occurred. Please try again.';
+      debugPrint('Error inserting report: $e');
     }
 
     _isLoading = false;
     notifyListeners();
+    return errorMessage;
   }
 
-  // Updates an existing daily report
-  Future<void> updateDailyReport(String reportId, DailyReport report) async {
+  // Updates an existing daily report. Returns an error message on failure.
+  Future<String?> updateDailyReport(String reportId, DailyReport report) async {
     _isLoading = true;
     notifyListeners();
+    String? errorMessage;
 
-    // TODO: Implement Supabase call to update the report
-    await Future.delayed(const Duration(seconds: 2));
-    print('Report updated for ID $reportId: ${report.toJson()}');
+    try {
+      final client = Supabase.instance.client;
+      await client.from('daily_reports').update(report.toJson()).eq('id', reportId);
+    } catch (e) {
+      errorMessage = 'An unexpected error occurred. Please try again.';
+      debugPrint('Error updating report: $e');
+    }
 
     _isLoading = false;
     notifyListeners();
+    return errorMessage;
   }
 }

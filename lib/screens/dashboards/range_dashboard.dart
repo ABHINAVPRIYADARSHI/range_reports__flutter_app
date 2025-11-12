@@ -77,8 +77,11 @@ class _RangeDashboardState extends State<RangeDashboard> {
                 )
               else
                 ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pushNamed(context, Routes.reportForm, arguments: {'mode': 'new'});
+                  onPressed: () async {
+                    // Navigate and wait for the form to be closed
+                    await Navigator.pushNamed(context, Routes.reportForm, arguments: {'mode': 'new'});
+                    // When back, re-fetch the report to update the UI
+                    _fetchTodaysReport();
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Submit Today\'s Report'),

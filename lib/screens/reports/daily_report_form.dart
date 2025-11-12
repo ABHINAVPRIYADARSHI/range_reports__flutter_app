@@ -22,6 +22,10 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   late List<TextEditingController> _totalControllers;
   late List<TextEditingController> _criticalControllers;
 
+  String _mode = 'new'; // 'new' or 'edit'
+  DailyReport? _existingReport;
+  bool _isInitialized = false;
+
   int _totalSum = 0;
   int _criticalSum = 0;
 
@@ -38,10 +42,36 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      final args = ModalRoute.of(context)!.settings.arguments as Map?;
+      if (args != null && args['mode'] == 'edit') {
+        _mode = 'edit';
+        _existingReport = args['report'] as DailyReport;
+        _populateForm();
+      }
+      _isInitialized = true;
+    }
+  }
+
+  void _populateForm() {
+    if (_existingReport == null) return;
+    for (var answer in _existingReport!.answers) {
+      final index = dailyReportQuestions.indexWhere((q) => q.id == answer.qId);
+      if (index != -1) {
+        _totalControllers[index].text = answer.totalCount.toString();
+        _criticalControllers[index].text = answer.criticalCount.toString();
+      }
+    }
+    _updateTotals();
+  }
+
+  @override
   void dispose() {
     for (var i = 0; i < dailyReportQuestions.length; i++) {
       _totalControllers[i].removeListener(_updateTotals);
-      _criticalControllers[i].dispose();
+      _totalControllers[i].dispose();
       _criticalControllers[i].removeListener(_updateTotals);
       _criticalControllers[i].dispose();
     }
@@ -62,9 +92,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     final reportProvider = Provider.of<ReportProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -80,7 +108,8 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
     }
 
     final report = DailyReport(
-      reportDate: DateTime.now(),
+      id: _existingReport?.id, // Pass existing ID for updates
+      reportDate: _existingReport?.reportDate ?? DateTime.now(),
       commissionerateId: activeScope.commissionerateId,
       commissionerateName: activeScope.commissionerateName,
       divisionId: activeScope.divisionId ?? 'N/A',
@@ -93,24 +122,35 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
       criticalCount: _criticalSum,
     );
 
-    await reportProvider.insertDailyReport(report);
+    String? errorMessage;
+    if (_mode == 'new') {
+      errorMessage = await reportProvider.insertDailyReport(report);
+    } else {
+      errorMessage = await reportProvider.updateDailyReport(report.id!, report);
+    }
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Report submitted successfully!')),
-      );
-      Navigator.of(context).pop();
+      if (errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Theme.of(context).colorScheme.error),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Report ${_mode == 'new' ? 'submitted' : 'updated'} successfully!')),
+        );
+        Navigator.of(context).pop();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final reportProvider = Provider.of<ReportProvider>(context);
-    final date = DateFormat('dd MMM, yyyy').format(DateTime.now());
+    final date = DateFormat('dd MMM, yyyy').format(_existingReport?.reportDate ?? DateTime.now());
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Daily Report - $date'),
+        title: Text('${_mode == 'new' ? 'New' : 'Edit'} Report - $date'),
       ),
       body: LoaderOverlay(
         isLoading: reportProvider.isLoading,
@@ -143,7 +183,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
                     ElevatedButton.icon(
                       onPressed: _submitForm,
                       icon: const Icon(Icons.check),
-                      label: const Text('Submit Report'),
+                      label: Text(_mode == 'new' ? 'Submit Report' : 'Update Report'),
                     ),
                   ],
                 )
