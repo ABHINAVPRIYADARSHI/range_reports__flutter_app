@@ -25,6 +25,19 @@ class ActiveScope {
     required this.label,
   });
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ActiveScope &&
+        other.role == role &&
+        other.commissionerateId == commissionerateId &&
+        other.divisionId == divisionId &&
+        other.rangeId == rangeId;
+  }
+
+  @override
+  int get hashCode => Object.hash(role, commissionerateId, divisionId, rangeId);
+
   Map<String, dynamic> toJson() => {
         'role': role,
         'commissionerateId': commissionerateId,

@@ -23,13 +23,27 @@ class _RangeDashboardState extends State<RangeDashboard> {
     });
   }
 
+  @override
+  void didUpdateWidget(covariant RangeDashboard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the key has changed, it means the scope has changed, so re-fetch.
+    if (oldWidget.key != widget.key) {
+      _fetchTodaysReport();
+    }
+  }
+
   Future<void> _fetchTodaysReport() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final reportProvider = Provider.of<ReportProvider>(context, listen: false);
     final activeScope = authProvider.activeScope;
 
     if (activeScope != null) {
-      await reportProvider.getReportForRange(activeScope.rangeId!, DateTime.now());
+      await reportProvider.getReportForRange(
+        commissionerateId: activeScope.commissionerateId,
+        divisionId: activeScope.divisionId!,
+        rangeId: activeScope.rangeId!,
+        date: DateTime.now(),
+      );
     }
   }
 

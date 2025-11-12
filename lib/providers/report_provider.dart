@@ -12,8 +12,13 @@ class ReportProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  // Fetches a report for a specific range and date
-  Future<void> getReportForRange(String rangeId, DateTime date) async {
+  // Fetches a report for a specific scope and date
+  Future<void> getReportForRange({
+    required String commissionerateId,
+    required String divisionId,
+    required String rangeId,
+    required DateTime date,
+  }) async {
     _isLoading = true;
     notifyListeners();
 
@@ -24,6 +29,8 @@ class ReportProvider with ChangeNotifier {
       final response = await client
           .from('daily_reports')
           .select()
+          .eq('commissionerate_id', commissionerateId)
+          .eq('division_id', divisionId)
           .eq('range_id', rangeId)
           .eq('report_date', today)
           .limit(1);

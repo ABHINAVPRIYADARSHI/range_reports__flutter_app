@@ -105,7 +105,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     switch (activeScope.role) {
       case 'range_officer':
-        return const RangeDashboard();
+        // Use a key to ensure the dashboard widget is rebuilt when the scope changes
+        return RangeDashboard(
+          key: ValueKey(activeScope.label),
+        );
       case 'nodal_officer':
         // TODO: Return NodalDashboard when created
         return const Center(child: Text('Nodal Officer Dashboard (under construction)'));
