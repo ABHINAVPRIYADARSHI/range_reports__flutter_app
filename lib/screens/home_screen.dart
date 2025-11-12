@@ -5,6 +5,7 @@ import '../providers/theme_provider.dart';
 import '../widgets/scope_dropdown.dart';
 import '../widgets/scope_picker.dart';
 import '../widgets/loader_overlay.dart';
+import 'dashboards/range_dashboard.dart'; // Import the new dashboard
 
 
 class HomeScreen extends StatefulWidget {
@@ -89,39 +90,31 @@ class _HomeScreenState extends State<HomeScreen> {
       body: LoaderOverlay(
         isLoading: _isLoading,
         message: 'Applying selection...',
-        child: LayoutBuilder(builder: (context, constraints) {
-          final isLarge = constraints.maxWidth > 900;
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: isLarge ? 1200 : 800),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Hello, $username', style: Theme.of(context).textTheme.headlineSmall),
-                    const SizedBox(height: 12),
-                    if (active != null) ...[
-                      Text('Active scope: ${active.label} (${active.role.replaceAll('_', ' ')})'),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Open daily form (not implemented)')),
-                          );
-                        },
-                        child: const Text('Submit Today\'s Report'),
-                      ),
-                    ] else ...[
-                      const Text('No active scope selected. Please choose one from the dropdown.'),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
+        child: _buildRoleSpecificDashboard(auth.activeScope),
       ),
     );
   }
+
+  // Helper to build the body based on the user's active role
+  Widget _buildRoleSpecificDashboard(ActiveScope? activeScope) {
+    if (activeScope == null) {
+      return const Center(
+        child: Text('Please select a scope to continue.'),
+      );
+    }
+
+    switch (activeScope.role) {
+      case 'range_officer':
+        return const RangeDashboard();
+      case 'nodal_officer':
+        // TODO: Return NodalDashboard when created
+        return const Center(child: Text('Nodal Officer Dashboard (under construction)'));
+      case 'admin':
+        // TODO: Return AdminDashboard when created
+        return const Center(child: Text('Admin Dashboard (under construction)'));
+      default:
+        return const Center(child: Text('Unknown role. Please contact support.'));
+    }
+  }
 }
+
