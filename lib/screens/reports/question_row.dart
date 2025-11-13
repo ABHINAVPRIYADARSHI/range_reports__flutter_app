@@ -1,5 +1,3 @@
-// lib/widgets/reports/question_row.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/questions.dart';
@@ -18,32 +16,50 @@ class QuestionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(question.text),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 1,
-            child: _buildNumericFormField(
-              controller: totalController,
-              labelText: 'Total',
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 1,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text(
+                question.text,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 1,
-            child: _buildNumericFormField(
-              controller: criticalController,
-              labelText: 'Critical',
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 1,
+              child: _buildNumericFormField(
+                controller: totalController,
+                labelText: 'Total',
+                theme: theme,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 1,
+              child: _buildNumericFormField(
+                controller: criticalController,
+                labelText: 'Critical',
+                theme: theme,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -51,20 +67,27 @@ class QuestionRow extends StatelessWidget {
   Widget _buildNumericFormField({
     required TextEditingController controller,
     required String labelText,
+    required ThemeData theme,
   }) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
         labelText: labelText,
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
+        isDense: true,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
       ),
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       textAlign: TextAlign.center,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Req.'; // A short error message for required
+          return 'Req.';
         }
         return null;
       },

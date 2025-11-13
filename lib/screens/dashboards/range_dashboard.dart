@@ -152,15 +152,20 @@ class _RangeDashboardState extends State<RangeDashboard> {
                               width: double.infinity,
                               height: 48,
                               child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.pushNamed(
-                                    context, 
-                                    Routes.reportForm, 
-                                    arguments: {
-                                      'mode': 'edit',
-                                      'report': todaysReport,
-                                    },
-                                  );
+                                onPressed: () async {
+                                  // Force a fresh fetch of the report data
+                                  await _fetchTodaysReport();
+                                  
+                                  if (mounted) {
+                                    Navigator.pushNamed(
+                                      context, 
+                                      Routes.reportForm, 
+                                      arguments: {
+                                        'mode': 'edit',
+                                        'report': reportProvider.todaysReport,
+                                      },
+                                    );
+                                  }
                                 },
                                 icon: const Icon(Icons.edit_document, size: 20),
                                 label: const Text('View/Edit Report'),

@@ -1,5 +1,3 @@
-// lib/screens/reports/daily_report_form.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +20,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   late List<TextEditingController> _totalControllers;
   late List<TextEditingController> _criticalControllers;
 
-  String _mode = 'new'; // 'new' or 'edit'
+  String _mode = 'new';
   DailyReport? _existingReport;
   bool _isInitialized = false;
 
@@ -32,8 +30,14 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   @override
   void initState() {
     super.initState();
-    _totalControllers = List.generate(dailyReportQuestions.length, (_) => TextEditingController(text: '0'));
-    _criticalControllers = List.generate(dailyReportQuestions.length, (_) => TextEditingController(text: '0'));
+    _totalControllers = List.generate(
+      dailyReportQuestions.length,
+      (_) => TextEditingController(text: '0'),
+    );
+    _criticalControllers = List.generate(
+      dailyReportQuestions.length,
+      (_) => TextEditingController(text: '0'),
+    );
 
     for (var i = 0; i < dailyReportQuestions.length; i++) {
       _totalControllers[i].addListener(_updateTotals);
@@ -44,14 +48,36 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_isInitialized) {
-      final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    
+    try {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      
       if (args != null && args['mode'] == 'edit') {
-        _mode = 'edit';
-        _existingReport = args['report'] as DailyReport;
-        _populateForm();
+        final report = args['report'] as DailyReport?;
+        if (report != null) {
+          setState(() {
+            _mode = 'edit';
+            _existingReport = report;
+            _populateForm();
+          });
+        } else {
+          // Show error and go back if report data is missing
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error: Could not load report data')),
+            );
+            Navigator.of(context).pop();
+          });
+        }
       }
-      _isInitialized = true;
+    } catch (e) {
+      // Handle any unexpected errors
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('An error occurred while loading the form')),
+        );
+        Navigator.of(context).pop();
+      });
     }
   }
 
@@ -108,7 +134,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
     }
 
     final report = DailyReport(
-      id: _existingReport?.id, // Pass existing ID for updates
+      id: _existingReport?.id,
       reportDate: _existingReport?.reportDate ?? DateTime.now(),
       commissionerateId: activeScope.commissionerateId,
       commissionerateName: activeScope.commissionerateName,
@@ -132,11 +158,17 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
     if (mounted) {
       if (errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: Theme.of(context).colorScheme.error),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Report ${_mode == 'new' ? 'submitted' : 'updated'} successfully!')),
+          SnackBar(
+            content: Text('Report ${_mode == 'new' ? 'submitted' : 'updated'} successfully!'),
+            backgroundColor: Colors.green,  // Green snackbar on success
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -147,47 +179,69 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   Widget build(BuildContext context) {
     final reportProvider = Provider.of<ReportProvider>(context);
     final date = DateFormat('dd MMM, yyyy').format(_existingReport?.reportDate ?? DateTime.now());
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: Text('${_mode == 'new' ? 'New' : 'Edit'} Report - $date'),
+        elevation: 4,
+        backgroundColor: theme.colorScheme.primaryContainer,
+        foregroundColor: theme.colorScheme.onPrimaryContainer,
       ),
       body: LoaderOverlay(
         isLoading: reportProvider.isLoading,
         message: 'Saving Report...',
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ...List.generate(dailyReportQuestions.length, (index) {
-                  return QuestionRow(
-                    question: dailyReportQuestions[index],
-                    totalController: _totalControllers[index],
-                    criticalController: _criticalControllers[index],
-                  );
-                }),
-                const SizedBox(height: 24),
-                _buildTotalsFooter(),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+          child: Card(
+            elevation: 5,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: _submitForm,
-                      icon: const Icon(Icons.check),
-                      label: Text(_mode == 'new' ? 'Submit Report' : 'Update Report'),
+                    ...List.generate(dailyReportQuestions.length, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: QuestionRow(
+                          question: dailyReportQuestions[index],
+                          totalController: _totalControllers[index],
+                          criticalController: _criticalControllers[index],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 30),
+                    _buildTotalsFooter(theme),
+                    const SizedBox(height: 30),
+                    const Divider(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: _submitForm,
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: Text(_mode == 'new' ? 'Submit Report' : 'Update Report'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                )
-              ],
+                ),
+              ),
             ),
           ),
         ),
@@ -195,31 +249,37 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
     );
   }
 
-  Widget _buildTotalsFooter() {
+  Widget _buildTotalsFooter(ThemeData theme) {
     return Card(
+      color: theme.colorScheme.surfaceVariant,
       elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(18.0),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Column(
-              children: [
-                const Text('Total Count', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('$_totalSum', style: Theme.of(context).textTheme.headlineSmall),
-              ],
-            ),
-            Column(
-              children: [
-                const Text('Critical Count', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('$_criticalSum', style: Theme.of(context).textTheme.headlineSmall),
-              ],
-            ),
+            _totalCountColumn('Total Count', _totalSum, theme),
+            _totalCountColumn('Critical Count', _criticalSum, theme),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _totalCountColumn(String label, int count, ThemeData theme) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '$count',
+          style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary),
+        ),
+      ],
     );
   }
 }
