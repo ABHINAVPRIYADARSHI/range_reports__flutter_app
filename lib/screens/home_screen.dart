@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:reports_app/screens/dashboards/admin_dashboard.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/scope_dropdown.dart';
@@ -115,8 +116,10 @@ class _HomeScreenState extends State<HomeScreen> {
           keyValue: '${activeScope.commissionerateId}_${activeScope.divisionId}',
         );
       case 'admin':
-        // TODO: Return AdminDashboard when created
-        return const Center(child: Text('Admin Dashboard (under construction)'));
+        return AdminDashboard(
+          key: ValueKey('admin_${activeScope.commissionerateId}'),
+          keyValue: '${activeScope.commissionerateId}',
+        );
       default:
         return const Center(child: Text('Unknown role. Please contact support.'));
     }

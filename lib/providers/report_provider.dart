@@ -98,8 +98,6 @@ class ReportProvider with ChangeNotifier {
   }
 
   // For nodal officer - Fetches all reports  based on commissionerate, division, and date
-  //
-
   Future<List<DailyReport>> getReportsForNodal({
     required String commissionerateId,
     required String divisionId,
@@ -141,4 +139,46 @@ class ReportProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // For Admin officer - Fetches all reports  based on commissionerate & date
+  Future<List<DailyReport>> getReportsForAdmin({
+    required String commissionerateId,
+    required DateTime date,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final client = Supabase.instance.client;
+      final dateString = date.toIso8601String().substring(0, 10);
+
+      final response = await client
+          .from('daily_reports')
+          .select('*, users:submitted_by(name, phone)')
+          .eq('commissionerate_id', commissionerateId)
+          .eq('report_date', dateString);
+
+      if (response != null && response is List) {
+        final reports = response.map((json) {
+          // Flatten the user data
+          final flattenedJson = Map<String, dynamic>.from(json);
+          if (json['users'] != null) {
+            flattenedJson['user_name'] = json['users']['name'];
+            flattenedJson['user_phone'] = json['users']['phone'];
+          }
+          flattenedJson.remove('users'); // Remove nested object
+          return DailyReport.fromJson(flattenedJson);
+        }).toList();
+        return reports;
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching reports for nodal officer: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
 }
