@@ -117,6 +117,44 @@ class _NodalDashboardState extends State<NodalDashboard> {
     return 'No user assigned';
   }
 
+  Widget _buildSummaryItem({
+    required BuildContext context,
+    required String label,
+    required int count,
+    required IconData icon,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          count.toString(),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -177,7 +215,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Hi ${auth.user?['name'] ?? 'Officer'}!',
+                      'Hi, ${auth.user?['name'] ?? 'Officer'}!',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.onSurface,
@@ -191,6 +229,47 @@ class _NodalDashboardState extends State<NodalDashboard> {
                   ],
                 ),
               ),
+              
+              // Summary card with total and critical counts
+              if (!_isLoading && _error == null && _reports.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildSummaryItem(
+                            context: context,
+                            label: 'Total Issues',
+                            count: _reports.fold(0, (sum, report) => sum + (report.totalCount ?? 0)),
+                            icon: Icons.assignment,
+                            color: theme.colorScheme.primary,
+                          ),
+                          _buildSummaryItem(
+                            context: context,
+                            label: 'Critical Issues',
+                            count: _reports.fold(0, (sum, report) => sum + (report.criticalCount ?? 0)),
+                            icon: Icons.warning_amber_rounded,
+                            color: Colors.red,
+                          ),
+                          _buildSummaryItem(
+                            context: context,
+                            label: 'Ranges',
+                            count: _reports.length,
+                            icon: Icons.location_on,
+                            color: Colors.green,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               
               // Main content
               Expanded(

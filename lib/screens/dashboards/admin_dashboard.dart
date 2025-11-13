@@ -256,7 +256,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Hi ${auth.user?['name'] ?? 'Admin'}!',
+                      'Hi, ${auth.user?['name'] ?? 'Admin'}!',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.onSurface,
