@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/report_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../models/daily_report.dart';
 import '../../data/questions.dart';
 
@@ -111,177 +112,527 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeProv = Provider.of<ThemeProvider>(context, listen: true);
     final auth = context.watch<AuthProvider>();
     final activeScope = auth.activeScope;
+    final isDark = themeProv.isDarkMode;
+
+    // Define gradient colors based on theme
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF0F2027), // Dark teal
+            const Color(0xFF203A43), // Darker teal
+            const Color(0xFF2C5364), // Dark blue-gray
+          ]
+        : [
+            const Color(0xFFE0EAFC), // Very light blue
+            const Color(0xFFCFDEF3), // Light blue
+            const Color(0xFFE0EAFC), // Very light blue
+          ];
 
     if (activeScope == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please select a scope to continue.')),
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Center(
+            child: Text(
+              'Please select a scope to continue.',
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+        ),
       );
     }
 
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     if (_error != null) {
-      return Scaffold(body: Center(child: Text(_error!)));
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                _error!,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     if (_reports.isEmpty) {
-      return const Scaffold(
-        body: Center(child: Text('No reports found for today')),
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.assignment_outlined,
+                  size: 64,
+                  color: theme.colorScheme.primary.withOpacity(0.5),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No reports found for today',
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: _fetchReports,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refresh'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
     final groupedByDivision = groupBy(_reports, (DailyReport r) => r.divisionName ?? 'Unknown Division');
     final sortedEntries = groupedByDivision.entries.toList()
       ..sort((a, b) {
-        // Assuming divisionId is a string; if it's an int, remove .toString()
         final idA = a.value.first.divisionId ?? '';
         final idB = b.value.first.divisionId ?? '';
         return idA.compareTo(idB);
       });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Dashboard')),
-      body: ListView(
-        children: sortedEntries.map((entry) {
-          final divisionName = entry.key;
-          final reports = entry.value;
-
-          // Aggregate total and critical counts for division
-          final totalDivisionCount = reports.fold<int>(0, (sum, r) => sum + (r.totalCount ?? 0));
-          final criticalDivisionCount = reports.fold<int>(0, (sum, r) => sum + (r.criticalCount ?? 0));
-
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Column(
-              children: [
-                ListTile(
-                  title: Text(
-                    divisionName,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    'Total: $totalDivisionCount | Critical: $criticalDivisionCount',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ...reports.map((report) {
-                  final reportExpanded = _expandedReportId == report.id;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                    child: Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  child: Text(
-                                    _getUserInitials(report),
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        report.rangeName ?? 'Range ${report.rangeId ?? 'N/A'}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatUserDisplay(report),
-                                        style: const TextStyle(fontSize: 13, color: Colors.grey),
-                                        softWrap: true,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Total: ${report.totalCount ?? 0}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(
-                                      'Critical: ${report.criticalCount ?? 0}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  icon: Icon(reportExpanded ? Icons.expand_less : Icons.expand_more),
-                                  onPressed: () => _toggleExpandReport(report.id),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (reportExpanded) _buildReportDetails(report),
-                        ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header with title and refresh button
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Hi ${auth.user?['name'] ?? 'Admin'}!',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
-                  );
-                }).toList(),
-              ],
-            ),
-          );
-        }).toList(),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: _fetchReports,
+                      tooltip: 'Refresh',
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Main content
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  itemCount: sortedEntries.length,
+                  itemBuilder: (context, index) {
+                    final entry = sortedEntries[index];
+                    final divisionName = entry.key;
+                    final reports = entry.value;
+                    
+                    // Aggregate counts for division
+                    final totalDivisionCount = reports.fold<int>(0, (sum, r) => sum + (r.totalCount ?? 0));
+                    final criticalDivisionCount = reports.fold<int>(0, (sum, r) => sum + (r.criticalCount ?? 0));
+
+                    return _buildDivisionCard(
+                      context,
+                      divisionName: divisionName,
+                      totalCount: totalDivisionCount,
+                      criticalCount: criticalDivisionCount,
+                      reports: reports,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildReportDetails(DailyReport report) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+  Widget _buildDivisionCard(
+    BuildContext context, {
+    required String divisionName,
+    required int totalCount,
+    required int criticalCount,
+    required List<DailyReport> reports,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Divider(),
-          const SizedBox(height: 8),
-          ...report.answers.map((answer) {
-            final question = dailyReportQuestions.firstWhere(
-              (q) => q.id == answer.qId,
-              orElse: () => const ReportQuestion(id: -1, text: 'Unknown Question'),
-            );
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(question.text, style: const TextStyle(fontSize: 14)),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    '${answer.totalCount} (${answer.criticalCount} critical)',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
+          // Division header
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12.0),
+                topRight: Radius.circular(12.0),
               ),
-            );
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  divisionName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    // Total count badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$totalCount Total',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Critical count badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: criticalCount > 0 
+                            ? Colors.red.withOpacity(0.1) 
+                            : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$criticalCount Critical',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: criticalCount > 0 ? Colors.red : Colors.grey,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // Reports list
+          ...reports.map((report) {
+            final isExpanded = _expandedReportId == report.id;
+            return _buildReportCard(theme, report, isExpanded);
           }).toList(),
         ],
       ),
+    );
+  }
+
+  Widget _buildReportCard(ThemeData theme, DailyReport report, bool isExpanded) {
+    return Container(
+      margin: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4.0,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12.0),
+          onTap: () => _toggleExpandReport(report.id),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row
+                Row(
+                  children: [
+                    // Avatar with user initials
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          _getUserInitials(report),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Title and subtitle
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            report.rangeName ?? 'Range ${report.rangeId ?? 'N/A'}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatUserDisplay(report),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Status indicators
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${report.totalCount ?? 0} Total',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (report.criticalCount ?? 0) > 0 
+                            ? Colors.red.withOpacity(0.1) 
+                            : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${report.criticalCount ?? 0} Critical',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: (report.criticalCount ?? 0) > 0 ? Colors.red : Colors.grey,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      isExpanded ? Icons.expand_less : Icons.expand_more,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ],
+                ),
+
+                // Expanded content
+                if (isExpanded) _buildReportDetails(report, theme),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportDetails(DailyReport report, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 12),
+        const Divider(height: 1),
+        const SizedBox(height: 12),
+        ...report.answers.map((answer) {
+          final question = dailyReportQuestions.firstWhere(
+            (q) => q.id == answer.qId,
+            orElse: () => const ReportQuestion(id: -1, text: 'Unknown Question'),
+          );
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Question indicator
+                Container(
+                  width: 24,
+                  height: 24,
+                  margin: const EdgeInsets.only(right: 12, top: 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${report.answers.indexOf(answer) + 1}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Question and answer
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        question.text,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          // Total count badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${answer.totalCount} Total',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Critical count badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: answer.criticalCount > 0 
+                                ? Colors.red.withOpacity(0.1) 
+                                : Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${answer.criticalCount} Critical',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: answer.criticalCount > 0 
+                                  ? Colors.red 
+                                  : Colors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }

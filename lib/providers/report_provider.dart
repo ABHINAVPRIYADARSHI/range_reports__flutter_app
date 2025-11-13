@@ -97,14 +97,19 @@ class ReportProvider with ChangeNotifier {
     return errorMessage;
   }
 
-  // For nodal officer - Fetches all reports  based on commissionerate, division, and date
+  // For nodal officer - Fetches all reports based on commissionerate, division, and date
   Future<List<DailyReport>> getReportsForNodal({
     required String commissionerateId,
     required String divisionId,
     required DateTime date,
   }) async {
-    _isLoading = true;
-    notifyListeners();
+    // Schedule the loading state update for the next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isLoading == false) { // Only update if not already loading
+        _isLoading = true;
+        notifyListeners();
+      }
+    });
 
     try {
       final client = Supabase.instance.client;
@@ -141,18 +146,25 @@ class ReportProvider with ChangeNotifier {
       debugPrint('Error fetching reports for nodal officer: $e');
       rethrow;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _isLoading = false;
+        notifyListeners();
+      });
     }
   }
 
-  // For Admin officer - Fetches all reports  based on commissionerate & date
+  // For Admin officer - Fetches all reports based on commissionerate & date
   Future<List<DailyReport>> getReportsForAdmin({
     required String commissionerateId,
     required DateTime date,
   }) async {
-    _isLoading = true;
-    notifyListeners();
+    // Schedule the loading state update for the next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isLoading == false) { // Only update if not already loading
+        _isLoading = true;
+        notifyListeners();
+      }
+    });
 
     try {
       final client = Supabase.instance.client;
@@ -175,15 +187,30 @@ class ReportProvider with ChangeNotifier {
           flattenedJson.remove('users'); // Remove nested object
           return DailyReport.fromJson(flattenedJson);
         }).toList();
+        
+        // Sort reports by divisionId and then rangeId
+        reports.sort((a, b) {
+          final divA = a.divisionId ?? '';
+          final divB = b.divisionId ?? '';
+          if (divA != divB) return divA.compareTo(divB);
+          
+          final rangeA = a.rangeId ?? '';
+          final rangeB = b.rangeId ?? '';
+          return rangeA.compareTo(rangeB);
+        });
+        
         return reports;
       }
       return [];
     } catch (e) {
-      debugPrint('Error fetching reports for nodal officer: $e');
+      debugPrint('Error fetching reports for admin: $e');
       rethrow;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      // Schedule the loading state reset for the next frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _isLoading = false;
+        notifyListeners();
+      });
     }
   }
 
