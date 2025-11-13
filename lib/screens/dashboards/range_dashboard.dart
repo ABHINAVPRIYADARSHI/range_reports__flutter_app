@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/report_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../routes.dart';
 
 class RangeDashboard extends StatefulWidget {
@@ -49,59 +50,189 @@ class _RangeDashboardState extends State<RangeDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeProv = Provider.of<ThemeProvider>(context, listen: true);
+    final authProvider = Provider.of<AuthProvider>(context, listen: true);
+    final isDark = themeProv.isDarkMode;
     final reportProvider = Provider.of<ReportProvider>(context);
     final todaysReport = reportProvider.todaysReport;
+    final userName = (authProvider.user?['name'] as String?) ?? 'Officer!';
+
+    // Define gradient colors based on theme
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF0F2027), // Dark teal
+            const Color(0xFF203A43), // Darker teal
+            const Color(0xFF2C5364), // Dark blue-gray
+          ]
+        : [
+            const Color(0xFFE0EAFC), // Very light blue
+            const Color(0xFFCFDEF3), // Light blue
+            const Color(0xFFE0EAFC), // Very light blue
+          ];
 
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Range Officer Dashboard',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 30),
-              if (reportProvider.isLoading)
-                const CircularProgressIndicator()
-              else if (todaysReport != null)
-                // TODO: Replace with ReportSummaryCard widget
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        const Text('Today\'s report submitted.', style: TextStyle(fontSize: 16)),
-                        const SizedBox(height: 10),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pushNamed(context, Routes.reportForm, arguments: {
-                              'mode': 'edit',
-                              'report': todaysReport,
-                            });
-                          },
-                          icon: const Icon(Icons.edit),
-                          label: const Text('Edit Report'),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header Section
+                  Column(
+                    children: [
+                      Text(
+                        'Hi, $userName',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
                         ),
-                      ],
-                    ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Range Officer Dashboard',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
                   ),
-                )
-              else
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    // Navigate and wait for the form to be closed
-                    await Navigator.pushNamed(context, Routes.reportForm, arguments: {'mode': 'new'});
-                    // When back, re-fetch the report to update the UI
-                    _fetchTodaysReport();
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Submit Today\'s Report'),
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
-                ),
-            ],
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Main Content
+                  if (reportProvider.isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (todaysReport != null)
+                    // Report Status Card
+                    Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 64,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Report Submitted',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'You have successfully submitted today\'s report.',
+                              style: theme.textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.pushNamed(
+                                    context, 
+                                    Routes.reportForm, 
+                                    arguments: {
+                                      'mode': 'edit',
+                                      'report': todaysReport,
+                                    },
+                                  );
+                                },
+                                icon: const Icon(Icons.edit_document, size: 20),
+                                label: const Text('View/Edit Report'),
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    // No Report Card
+                    Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.assignment_outlined,
+                              size: 64,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No Report Submitted',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'You haven\'t submitted a report for today yet.',
+                              style: theme.textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  await Navigator.pushNamed(
+                                    context, 
+                                    Routes.reportForm, 
+                                    arguments: {'mode': 'new'},
+                                  );
+                                  _fetchTodaysReport();
+                                },
+                                icon: const Icon(Icons.add, size: 20),
+                                label: const Text('Submit Today\'s Report'),
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
