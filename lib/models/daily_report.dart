@@ -68,8 +68,8 @@ class DailyReport {
       totalCount: json['total_count'] as int,
       criticalCount: json['critical_count'] as int,
       submittedBy: json['submitted_by'] as String,
-      userName: json['user_name'] as String,
-      userPhone: json['user_phone'] as String,
+      userName: json['user_name'] as String? ?? '',
+      userPhone: json['user_phone'] as String? ?? '',
     );
   }
 }

@@ -137,11 +137,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
 
     final groupedByDivision = groupBy(_reports, (DailyReport r) => r.divisionName ?? 'Unknown Division');
+    final sortedEntries = groupedByDivision.entries.toList()
+      ..sort((a, b) {
+        // Assuming divisionId is a string; if it's an int, remove .toString()
+        final idA = a.value.first.divisionId ?? '';
+        final idB = b.value.first.divisionId ?? '';
+        return idA.compareTo(idB);
+      });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Admin Dashboard')),
       body: ListView(
-        children: groupedByDivision.entries.map((entry) {
+        children: sortedEntries.map((entry) {
           final divisionName = entry.key;
           final reports = entry.value;
 

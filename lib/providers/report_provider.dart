@@ -128,6 +128,12 @@ class ReportProvider with ChangeNotifier {
           flattenedJson.remove('users'); // Remove nested object
           return DailyReport.fromJson(flattenedJson);
         }).toList();
+         // Sort reports by rangeId (assuming rangeId is a String)
+        reports.sort((a, b) {
+          final idA = a.rangeId ?? '';
+          final idB = b.rangeId ?? '';
+          return idA.compareTo(idB);
+        });
         return reports;
       }
       return [];

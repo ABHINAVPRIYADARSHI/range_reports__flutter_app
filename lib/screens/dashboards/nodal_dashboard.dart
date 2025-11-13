@@ -91,7 +91,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
   String _getUserInitials(DailyReport report) {
     final name = report.userName ?? '';
     if (name.isEmpty) return 'N/A';
-    
+
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) {
       return parts[0].substring(0, 1).toUpperCase();
@@ -104,7 +104,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
   String _formatUserDisplay(DailyReport report) {
     final name = report.userName ?? '';
     final phone = report.userPhone ?? '';
-    
+
     if (name.isNotEmpty && phone.isNotEmpty) {
       return '$name • $phone';
     } else if (name.isNotEmpty) {
@@ -112,7 +112,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
     } else if (phone.isNotEmpty) {
       return phone;
     }
-    
+
     return 'No user assigned';
   }
 
@@ -128,119 +128,132 @@ class _NodalDashboardState extends State<NodalDashboard> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nodal Dashboard'),
-      ),
+      appBar: AppBar(title: const Text('Nodal Dashboard')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : _reports.isEmpty
-                  ? const Center(child: Text('No reports found for today'))
-                  : ListView.builder(
-                      itemCount: _reports.length,
-                      itemBuilder: (context, index) {
-                        final report = _reports[index];
-                        final isExpanded = _expandedReportId == report.id;
+          ? Center(child: Text(_error!))
+          : _reports.isEmpty
+          ? const Center(child: Text('No reports found for today'))
+          : ListView.builder(
+              itemCount: _reports.length,
+              itemBuilder: (context, index) {
+                final report = _reports[index];
+                final isExpanded = _expandedReportId == report.id;
 
-         return Card(
-  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-  child: Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-        child: Row(
-          children: [
-            // 👤 Avatar with user initials
-            CircleAvatar(
-              radius: 20,
-              child: Text(
-                _getUserInitials(report),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // 📄 Title + subtitle (takes remaining space)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Range name
-                  Text(
-                    report.rangeName ?? 'Range ${report.rangeId ?? 'N/A'}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
                   ),
-                  const SizedBox(height: 4),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0,
+                          vertical: 6.0,
+                        ),
+                        child: Row(
+                          children: [
+                            // 👤 Avatar with user initials
+                            CircleAvatar(
+                              radius: 20,
+                              child: Text(
+                                _getUserInitials(report),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
 
-                  // User name + phone
-                  Text(
-                    _formatUserDisplay(report),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: true,
+                            // 📄 Title + subtitle (takes remaining space)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Range name
+                                  Text(
+                                    report.rangeName ??
+                                        'Range ${report.rangeId ?? 'N/A'}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+
+                                  // User name + phone
+                                  Text(
+                                    _formatUserDisplay(report),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // ➕ Trailing section (counts + expand button)
+                            const SizedBox(width: 12),
+                            Row(
+                              mainAxisSize: MainAxisSize
+                                  .min, // 👈 This ensures it doesn’t push outward
+                              children: [
+                                // Counts column
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Total count: ${report.totalCount ?? 0}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Critical count: ${report.criticalCount ?? 0}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 8),
+
+                                // Expand/collapse button
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: Icon(
+                                    isExpanded
+                                        ? Icons.expand_less
+                                        : Icons.expand_more,
+                                  ),
+                                  onPressed: () =>
+                                      _toggleExpandReport(report.id),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // 📋 Expanded section (if any)
+                      if (isExpanded) _buildReportDetails(report),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
-
-            // ➕ Trailing section (counts + expand button)
-            const SizedBox(width: 12),
-            Row(
-              mainAxisSize: MainAxisSize.min, // 👈 This ensures it doesn’t push outward
-              children: [
-                // Counts column
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Total count: ${report.totalCount ?? 0}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Critical count: ${report.criticalCount ?? 0}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-
-                // Expand/collapse button
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(
-                    isExpanded ? Icons.expand_less : Icons.expand_more,
-                  ),
-                  onPressed: () => _toggleExpandReport(report.id),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-
-      // 📋 Expanded section (if any)
-      if (isExpanded) _buildReportDetails(report),
-    ],
-  ),
-);
-                      },
-                    ),
     );
   }
 
@@ -255,7 +268,8 @@ class _NodalDashboardState extends State<NodalDashboard> {
           ...report.answers.map((answer) {
             final question = dailyReportQuestions.firstWhere(
               (q) => q.id == answer.qId,
-              orElse: () => const ReportQuestion(id: -1, text: 'Unknown Question'),
+              orElse: () =>
+                  const ReportQuestion(id: -1, text: 'Unknown Question'),
             );
 
             return Padding(
@@ -272,9 +286,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
                   const SizedBox(width: 16),
                   Text(
                     '${answer.totalCount} (${answer.criticalCount} critical)',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
