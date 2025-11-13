@@ -16,12 +16,12 @@ class ScopeDropdown extends StatelessWidget {
     if (scope.role == 'nodal_officer') {
       final div = scope.divisionName ?? scope.divisionId ?? '';
       final comm = scope.commissionerateName ?? scope.commissionerateId;
-      return div.isNotEmpty ? '$div — $comm' : comm;
+      return div.isNotEmpty ? '$div - $comm' : comm;
     }
     // range_officer
     final rng = scope.rangeName ?? scope.rangeId ?? '';
     final div = scope.divisionName ?? scope.divisionId ?? '';
-    return rng.isNotEmpty ? '$rng — $div' : (div.isNotEmpty ? div : scope.commissionerateName ?? scope.commissionerateId);
+    return rng.isNotEmpty ? '$rng - $div' : (div.isNotEmpty ? div : scope.commissionerateName ?? scope.commissionerateId);
   }
 
   @override

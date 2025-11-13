@@ -5,8 +5,8 @@ import '../providers/theme_provider.dart';
 import '../widgets/scope_dropdown.dart';
 import '../widgets/scope_picker.dart';
 import '../widgets/loader_overlay.dart';
-import 'dashboards/range_dashboard.dart'; // Import the new dashboard
-
+import 'dashboards/range_dashboard.dart';
+import 'dashboards/nodal_dashboard.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -110,8 +110,10 @@ class _HomeScreenState extends State<HomeScreen> {
           key: ValueKey(activeScope.label),
         );
       case 'nodal_officer':
-        // TODO: Return NodalDashboard when created
-        return const Center(child: Text('Nodal Officer Dashboard (under construction)'));
+        return NodalDashboard(
+          key: ValueKey('nodal_${activeScope.commissionerateId}_${activeScope.divisionId}'),
+          keyValue: '${activeScope.commissionerateId}_${activeScope.divisionId}',
+        );
       case 'admin':
         // TODO: Return AdminDashboard when created
         return const Center(child: Text('Admin Dashboard (under construction)'));
@@ -120,4 +122,3 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 }
-

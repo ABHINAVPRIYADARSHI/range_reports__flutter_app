@@ -13,6 +13,8 @@ class DailyReport {
   final int totalCount;
   final int criticalCount;
   final String submittedBy; // User ID
+  final String? userName;
+  final String? userPhone;
 
   DailyReport({
     this.id,
@@ -27,6 +29,8 @@ class DailyReport {
     required this.totalCount,
     required this.criticalCount,
     required this.submittedBy,
+    this.userName,
+    this.userPhone,
   });
 
   // Note: A fromJson factory will be added later when we need to fetch data
@@ -58,10 +62,14 @@ class DailyReport {
       divisionName: json['division_name'] as String?,
       rangeId: json['range_id'] as String,
       rangeName: json['range_name'] as String?,
-      answers: answersList.map((a) => ReportAnswer.fromJson(a as Map<String, dynamic>)).toList(),
+      answers: answersList
+          .map((a) => ReportAnswer.fromJson(a as Map<String, dynamic>))
+          .toList(),
       totalCount: json['total_count'] as int,
       criticalCount: json['critical_count'] as int,
       submittedBy: json['submitted_by'] as String,
+      userName: json['user_name'] as String,
+      userPhone: json['user_phone'] as String,
     );
   }
 }

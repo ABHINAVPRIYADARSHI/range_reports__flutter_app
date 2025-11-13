@@ -31,12 +31,12 @@ class _ScopePickerDialogState extends State<ScopePickerDialog> {
     if (s.role == 'nodal_officer') {
       final d = s.divisionName ?? s.divisionId ?? '';
       final c = s.commissionerateName ?? s.commissionerateId;
-      return d.isNotEmpty ? '$d — $c' : c;
+      return d.isNotEmpty ? '$d / $c' : c;
     }
     // range_officer
     final r = s.rangeName ?? s.rangeId ?? '';
     final d = s.divisionName ?? s.divisionId ?? '';
-    return r.isNotEmpty ? '$r — $d' : (d.isNotEmpty ? d : s.commissionerateName ?? s.commissionerateId);
+    return r.isNotEmpty ? '$r / $d' : (d.isNotEmpty ? d : s.commissionerateName ?? s.commissionerateId);
   }
 
   String _subtitleForScope(ActiveScope s) {
