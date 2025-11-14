@@ -104,99 +104,69 @@ class _NodalDashboardState extends State<NodalDashboard> {
     return '$first$last';
   }
 
+  Future<void> makePhoneCall(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrlString(phoneUri.toString())) {
+      await launchUrlString(phoneUri.toString());
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch phone call')),
+      );
+    }
+  }
+
+  Widget buildCallButton(String phone) {
+    return GestureDetector(
+      onTap: () => makePhoneCall(phone),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 1.0, end: 1.0),
+        duration: const Duration(milliseconds: 1500),
+        builder: (context, scale, child) {
+          return Transform.scale(
+            scale: scale,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blue.shade400,
+                    Colors.blue.shade600,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.4),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.phone_in_talk,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _formatUserDisplay(DailyReport report) {
     final name = report.userName ?? '';
     final phone = report.userPhone ?? '';
 
-    Future<void> makePhoneCall(String phoneNumber) async {
-      final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
-      if (await canLaunchUrlString(phoneUri.toString())) {
-        await launchUrlString(phoneUri.toString());
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not launch phone call')),
-          );
-        }
-      }
-    }
-
-    Widget buildCallButton() {
-      return GestureDetector(
-        onTap: () => makePhoneCall(phone),
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 1.0, end: 1.0),
-          duration: const Duration(milliseconds: 1500),
-          builder: (context, scale, child) {
-            return Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.blue.shade400,
-                      Colors.blue.shade600,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.4),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.phone_in_talk,
-                  size: 16,
-                  color: Colors.white,
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    }
-
     if (name.isNotEmpty && phone.isNotEmpty) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('$name • $phone'),
-          if (phone.isNotEmpty) ...[
-            const SizedBox(width: 12),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Tooltip(
-                message: 'Call $phone',
-                child: buildCallButton(),
-              ),
-            ),
-          ],
-        ],
-      );
+      return Text('$name • $phone');
     } else if (name.isNotEmpty) {
       return Text(name);
     } else if (phone.isNotEmpty) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(phone),
-          const SizedBox(width: 12),
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Tooltip(
-              message: 'Call $phone',
-              child: buildCallButton(),
-            ),
-          ),
-        ],
-      );
+      return Text(phone);
     }
 
     return const Text('No user assigned');
@@ -431,22 +401,36 @@ class _NodalDashboardState extends State<NodalDashboard> {
                                               // Header row
                                               Row(
                                                 children: [
-                                                  // Avatar with user initials
-                                                  Container(
-                                                    width: 40,
-                                                    height: 40,
-                                                    decoration: BoxDecoration(
-                                                      color: theme.colorScheme.primary.withOpacity(0.1),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                    child: Center(
-                                                      child: Text(
-                                                        _getUserInitials(report),
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: theme.colorScheme.primary,
+                                                  // Call button
+                                                  GestureDetector(
+                                                    onTap: report.userPhone?.isNotEmpty == true 
+                                                        ? () => makePhoneCall(report.userPhone!)
+                                                        : null,
+                                                    child: Container(
+                                                      width: 40,
+                                                      height: 40,
+                                                      decoration: BoxDecoration(
+                                                        gradient: LinearGradient(
+                                                          colors: [
+                                                            Colors.blue.shade400,
+                                                            Colors.blue.shade600,
+                                                          ],
+                                                          begin: Alignment.topLeft,
+                                                          end: Alignment.bottomRight,
                                                         ),
+                                                        shape: BoxShape.circle,
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: Colors.blue.withOpacity(0.4),
+                                                            blurRadius: 4,
+                                                            offset: const Offset(0, 2),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.phone_in_talk,
+                                                        size: 20,
+                                                        color: Colors.white,
                                                       ),
                                                     ),
                                                   ),
