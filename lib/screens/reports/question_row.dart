@@ -24,7 +24,7 @@ class QuestionRow extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
-      color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
         child: Row(

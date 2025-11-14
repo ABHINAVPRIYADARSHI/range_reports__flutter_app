@@ -218,8 +218,9 @@ class AuthProvider extends ChangeNotifier {
             }
             if (asMap.containsKey('data')) {
               final d = asMap['data'];
-              if (d is List) dataList = d;
-              else if (d != null) dataList = [d];
+              if (d is List) {
+                dataList = d;
+              } else if (d != null) dataList = [d];
             }
           } catch (__) {
             // couldn't interpret response shape

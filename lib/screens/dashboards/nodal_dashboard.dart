@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import 'dart:io' show Platform;
 import '../../providers/auth_provider.dart';
 import '../../providers/report_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -102,19 +104,102 @@ class _NodalDashboardState extends State<NodalDashboard> {
     return '$first$last';
   }
 
-  String _formatUserDisplay(DailyReport report) {
+  Widget _formatUserDisplay(DailyReport report) {
     final name = report.userName ?? '';
     final phone = report.userPhone ?? '';
 
-    if (name.isNotEmpty && phone.isNotEmpty) {
-      return '$name • $phone';
-    } else if (name.isNotEmpty) {
-      return name;
-    } else if (phone.isNotEmpty) {
-      return phone;
+    Future<void> makePhoneCall(String phoneNumber) async {
+      final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+      if (await canLaunchUrlString(phoneUri.toString())) {
+        await launchUrlString(phoneUri.toString());
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not launch phone call')),
+          );
+        }
+      }
     }
 
-    return 'No user assigned';
+    Widget buildCallButton() {
+      return GestureDetector(
+        onTap: () => makePhoneCall(phone),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 1.0, end: 1.0),
+          duration: const Duration(milliseconds: 1500),
+          builder: (context, scale, child) {
+            return Transform.scale(
+              scale: scale,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.blue.shade400,
+                      Colors.blue.shade600,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.4),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.phone_in_talk,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    if (name.isNotEmpty && phone.isNotEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$name • $phone'),
+          if (phone.isNotEmpty) ...[
+            const SizedBox(width: 12),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Tooltip(
+                message: 'Call $phone',
+                child: buildCallButton(),
+              ),
+            ),
+          ],
+        ],
+      );
+    } else if (name.isNotEmpty) {
+      return Text(name);
+    } else if (phone.isNotEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(phone),
+          const SizedBox(width: 12),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Tooltip(
+              message: 'Call $phone',
+              child: buildCallButton(),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return const Text('No user assigned');
   }
 
   Widget _buildSummaryItem({
@@ -381,13 +466,13 @@ class _NodalDashboardState extends State<NodalDashboard> {
                                                           overflow: TextOverflow.ellipsis,
                                                         ),
                                                         const SizedBox(height: 2),
-                                                        Text(
-                                                          _formatUserDisplay(report),
+                                                        DefaultTextStyle(
                                                           style: theme.textTheme.bodySmall?.copyWith(
                                                             color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-                                                          ),
+                                                          ) ?? const TextStyle(),
                                                           maxLines: 1,
                                                           overflow: TextOverflow.ellipsis,
+                                                          child: _formatUserDisplay(report),
                                                         ),
                                                       ],
                                                     ),
@@ -559,7 +644,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
               ],
             ),
           );
-        }).toList(),
+        }),
         const SizedBox(height: 8),
       ],
     );

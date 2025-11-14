@@ -22,7 +22,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
 
   String _mode = 'new';
   DailyReport? _existingReport;
-  bool _isInitialized = false;
+  final bool _isInitialized = false;
 
   int _totalSum = 0;
   int _criticalSum = 0;
@@ -251,7 +251,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
 
   Widget _buildTotalsFooter(ThemeData theme) {
     return Card(
-      color: theme.colorScheme.surfaceVariant,
+      color: theme.colorScheme.surfaceContainerHighest,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(

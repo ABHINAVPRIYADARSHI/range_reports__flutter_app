@@ -118,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'admin':
         return AdminDashboard(
           key: ValueKey('admin_${activeScope.commissionerateId}'),
-          keyValue: '${activeScope.commissionerateId}',
+          keyValue: activeScope.commissionerateId,
         );
       default:
         return const Center(child: Text('Unknown role. Please contact support.'));

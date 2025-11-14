@@ -122,7 +122,7 @@ class ReportProvider with ChangeNotifier {
           .eq('division_id', divisionId)
           .eq('report_date', dateString);
 
-      if (response != null && response is List) {
+      if (response is List) {
         final reports = response.map((json) {
           // Flatten the user data
           final flattenedJson = Map<String, dynamic>.from(json);
@@ -176,7 +176,7 @@ class ReportProvider with ChangeNotifier {
           .eq('commissionerate_id', commissionerateId)
           .eq('report_date', dateString);
 
-      if (response != null && response is List) {
+      if (response is List) {
         final reports = response.map((json) {
           // Flatten the user data
           final flattenedJson = Map<String, dynamic>.from(json);
