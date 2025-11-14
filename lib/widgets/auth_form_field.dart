@@ -5,6 +5,8 @@ class AuthFormField extends StatelessWidget {
   final TextEditingController controller;
   final bool obscure;
   final TextInputType keyboardType;
+  final String? Function(String?)? validator;
+  final String? errorText;
 
   const AuthFormField({
     super.key,
@@ -12,18 +14,22 @@ class AuthFormField extends StatelessWidget {
     required this.controller,
     this.obscure = false,
     this.keyboardType = TextInputType.text,
+    this.validator,
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
+      validator: validator,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
         isDense: true,
+        errorText: errorText,
       ),
     );
   }

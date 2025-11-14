@@ -156,28 +156,31 @@ class AuthProvider extends ChangeNotifier {
 
   /// Register (RPC wrapper) - returns null on success, or string message on error
   Future<String?> register({
-    required String username,
-    required String password,
-    required String name,
-    String? phone,
-  }) async {
-    try {
-      final client = Supabase.instance.client;
-      final res = await client.rpc('rpc_register', params: {
-        'p_username': username,
-        'p_password': password,
-        'p_name': name,
-        'p_phone': phone ?? '',
-      });
+  required String username,
+  required String password,
+  required String name,
+  String? phone,
+  String? email,
+}) async {
+  try {
+    final client = Supabase.instance.client;
+    final response = await client.rpc('rpc_register', params: {
+      'p_username': username,
+      'p_password': password,
+      'p_name': name,
+      'p_phone': phone ?? '',
+      'p_email': email,
+    });
 
-      if (res.error != null) {
-        return res.error!.message;
-      }
-      return null;
-    } catch (e) {
-      return 'Registration failed: $e';
-    }
+    // The response is already the data we want if successful
+    // If there's an error, it will be caught in the catch block
+    return null;
+  } on PostgrestException catch (e) {
+    return e.message;
+  } catch (e) {
+    return 'Registration failed: $e';
   }
+}
 
   /// Login using rpc_login (server-side verifies password)
   Future<String?> login(String usernameInput, String password) async {
