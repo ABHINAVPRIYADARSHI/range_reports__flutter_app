@@ -15,5 +15,5 @@ const List<ReportQuestion> dailyReportQuestions = [
   ReportQuestion(id: 5, text: 'Application for registration as Non Resident Taxable Person'),
   ReportQuestion(id: 6, text: 'Suo-Moto cancellation proceedings'),
   ReportQuestion(id: 7, text: 'Revocation of cancelled registration'),
-  ReportQuestion(id: 8, text: 'Pending report verification'),
+  ReportQuestion(id: 8, text: 'Pending refund verification'),
 ];

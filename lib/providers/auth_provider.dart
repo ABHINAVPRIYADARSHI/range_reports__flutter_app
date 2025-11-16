@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/UserRole.dart';
 
 /// Simple ActiveScope model used by the UI
 class ActiveScope {
@@ -70,6 +71,8 @@ class AuthProvider extends ChangeNotifier {
   String? _name;
   String? _status;
   List<Map<String, dynamic>> _roles = [];
+  List<UserRole> _userRoles = [];
+  List<UserRole> get userRoles => _userRoles;
 
   ActiveScope? _activeScope;
 
@@ -137,6 +140,42 @@ class AuthProvider extends ChangeNotifier {
       'roles': _roles,
     };
     await prefs.setString(_kPrefsUserKey, jsonEncode(map));
+  }
+
+  Future<void> fetchAllUserRoles() async {
+    try {
+      // Query the view directly
+      final client = Supabase.instance.client;
+      final response = await client
+          .from('view_all_user_roles')
+          .select('*');
+      
+      _userRoles = (response as List)
+          .map((data) => UserRole.fromMap(data))
+          .toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error fetching user roles: $e');
+      rethrow;
+    }
+  }
+
+
+  Future<void> updateUserStatus(String userId, String status) async {
+    try {
+      // Update the user status in the users table
+      final client = Supabase.instance.client;
+      await client
+          .from('users')
+          .update({'status': status})
+          .eq('id', userId);
+      
+      // Refresh the user roles
+      await fetchAllUserRoles();
+    } catch (e) {
+      debugPrint('Error updating user status: $e');
+      rethrow;
+    }
   }
 
   Future<void> _saveActiveScopeToPrefs() async {

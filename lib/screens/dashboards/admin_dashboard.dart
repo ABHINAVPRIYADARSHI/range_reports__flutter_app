@@ -8,6 +8,7 @@ import '../../providers/report_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../models/daily_report.dart';
 import '../../data/questions.dart';
+import '../admin/user_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key, this.keyValue});
@@ -207,50 +208,94 @@ class _AdminDashboardState extends State<AdminDashboard> {
       );
     }
 
-    if (_reports.isEmpty) {
-      return Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradientColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    // Always show the header with greeting and buttons
+    Widget _buildHeader() {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Row(
+          children: [
+            // Greeting text
+            Expanded(
+              child: Text(
+                'Hi, ${auth.user?['name'] ?? 'Admin'}!',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.assignment_outlined,
-                  size: 64,
-                  color: theme.colorScheme.primary.withOpacity(0.5),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No reports found for today',
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: _fetchReports,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
-                ),
-              ],
+            
+            // User Management Button
+            Container(
+              margin: const EdgeInsets.only(left: 8.0),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.people_alt_outlined, size: 22),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UserManagementScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'User Management',
+                color: theme.colorScheme.primary,
+                padding: const EdgeInsets.all(8.0),
+                constraints: const BoxConstraints(),
+              ),
             ),
-          ),
+            
+            // Refresh Button
+            Container(
+              margin: const EdgeInsets.only(left: 8.0),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.refresh, size: 22),
+                onPressed: _fetchReports,
+                tooltip: 'Refresh',
+                color: theme.colorScheme.primary,
+                padding: const EdgeInsets.all(8.0),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    final groupedByDivision = groupBy(_reports, (DailyReport r) => r.divisionName ?? 'Unknown Division');
-    final sortedEntries = groupedByDivision.entries.toList()
-      ..sort((a, b) {
-        final idA = a.value.first.divisionId ?? '';
-        final idB = b.value.first.divisionId ?? '';
-        return idA.compareTo(idB);
-      });
+    Widget _buildNoReportsView() {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.assignment_outlined,
+              size: 64,
+              color: theme.colorScheme.primary.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No reports found for today',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _fetchReports,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       body: Container(
@@ -264,52 +309,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header with title and refresh button
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Hi, ${auth.user?['name'] ?? 'Admin'}!',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: _fetchReports,
-                      tooltip: 'Refresh',
-                    ),
-                  ],
-                ),
-              ),
+              // Header with greeting and buttons
+              _buildHeader(),
               
               // Main content
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  itemCount: sortedEntries.length,
-                  itemBuilder: (context, index) {
-                    final entry = sortedEntries[index];
-                    final divisionName = entry.key;
-                    final reports = entry.value;
-                    
-                    // Aggregate counts for division
-                    final totalDivisionCount = reports.fold<int>(0, (sum, r) => sum + (r.totalCount ?? 0));
-                    final criticalDivisionCount = reports.fold<int>(0, (sum, r) => sum + (r.criticalCount ?? 0));
-
-                    return _buildDivisionCard(
-                      context,
-                      divisionName: divisionName,
-                      totalCount: totalDivisionCount,
-                      criticalCount: criticalDivisionCount,
-                      reports: reports,
-                    );
-                  },
+              if (_reports.isEmpty)
+                Expanded(child: _buildNoReportsView())
+              else
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    itemCount: _reports.isEmpty ? 0 : _reports.length,
+                    itemBuilder: (context, index) {
+                      final report = _reports[index];
+                      return _buildReportCard(theme, report, _expandedReportId == report.id);
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         ),
