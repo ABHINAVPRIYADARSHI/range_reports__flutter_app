@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../models/UserRole.dart';
+import '../models/user_role.dart';
 
 /// Simple ActiveScope model used by the UI
 class ActiveScope {
@@ -160,20 +160,52 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-
   Future<void> updateUserStatus(String userId, String status) async {
+  final client = Supabase.instance.client;
+
+  // Update the user status
+  await client
+      .from('users')
+      .update({'status': status})
+      .eq('id', userId);
+
+  if (status == 'blocked') {
+    // When blocking, also deactivate all roles for this user
+    await client
+        .from('user_roles')
+        .update({'is_active': false})
+        .eq('user_id', userId);
+  }
+
+  // If you keep userRoles in memory, refresh them:
+  await fetchAllUserRoles();
+}
+
+  Future<void> updateUserRoles(
+    String userId,
+    List<Map<String, dynamic>> updates,
+  ) async {
+    final client = Supabase.instance.client;
+
+    // You can wrap in a transaction via RPC if needed,
+    // but for simplicity we just perform multiple updates here.
     try {
-      // Update the user status in the users table
-      final client = Supabase.instance.client;
-      await client
-          .from('users')
-          .update({'status': status})
-          .eq('id', userId);
-      
-      // Refresh the user roles
-      await fetchAllUserRoles();
+      for (final u in updates) {
+        final String roleId = u['roleId'] as String;
+        final bool isActive = u['isActive'] as bool;
+
+        await client
+            .from('user_roles')
+            .update({'is_active': isActive})
+            .eq('id', roleId);
+      }
+      // Optionally refresh userRoles here, but we already do it from the screen
+      // via fetchAllUserRoles() after calling this method.
+    } on PostgrestException catch (e) {
+      // Rethrow so the screen's catch block can show the snackbar
+      rethrow;
     } catch (e) {
-      debugPrint('Error updating user status: $e');
+      // Also rethrow any other error
       rethrow;
     }
   }
@@ -193,6 +225,7 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove(_kPrefsActiveScope);
   }
 
+  /// TODO: remove as no longer used :-
   /// Register (RPC wrapper) - returns null on success, or string message on error
   Future<String?> register({
     required String username,
@@ -222,36 +255,40 @@ class AuthProvider extends ChangeNotifier {
 }
 
 /// Register with roles (RPC wrapper) - returns null on success, or string message on error
-Future<String?> registerWithRoles({
-  required String username,
-  required String password,
-  required String name,
-  required String phone,
-  String? email,
-  required List<Map<String, String?>> roles,
-}) async {
-  try {
-    final client = Supabase.instance.client;
+  Future<String?> registerWithRoles({
+    required String username,
+    required String password,
+    required String name,
+    required String phone,
+    String? email,
+    required List<Map<String, String?>> roles,
+  }) async {
+    try {
+      final client = Supabase.instance.client;
 
-    await client.rpc('rpc_register_with_roles', params: {
-      'p_username': username,
-      'p_password': password,
-      'p_name': name,
-      'p_phone': phone,
-      'p_email': email,
-      'p_roles': roles, // Supabase will serialize this to JSON for the jsonb param
-    });
+      await client.rpc(
+        'rpc_register_with_roles',
+        params: {
+          'p_username': username,
+          'p_password': password,
+          'p_name': name,
+          'p_phone': phone,
+          'p_email': email,
+          'p_roles':
+              roles, // Supabase will serialize this to JSON for the jsonb param
+        },
+      );
 
-    // If successful, just return null (no error)
-    return null;
-  } on PostgrestException catch (e) {
-    // Postgres / RPC-level error (e.g. validation failed, username exists, mixed roles, etc.)
-    return e.message;
-  } catch (e) {
-    // Anything else (network, client, etc.)
-    return 'Registration failed: $e';
+      // If successful, just return null (no error)
+      return null;
+    } on PostgrestException catch (e) {
+      // Postgres / RPC-level error (e.g. validation failed, username exists, mixed roles, etc.)
+      return e.message;
+    } catch (e) {
+      // Anything else (network, client, etc.)
+      return 'Registration failed: $e';
+    }
   }
-}
 
   /// Login using rpc_login (server-side verifies password)
   Future<String?> login(String usernameInput, String password) async {
