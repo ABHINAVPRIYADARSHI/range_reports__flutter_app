@@ -195,12 +195,12 @@ class AuthProvider extends ChangeNotifier {
 
   /// Register (RPC wrapper) - returns null on success, or string message on error
   Future<String?> register({
-  required String username,
-  required String password,
-  required String name,
-  String? phone,
-  String? email,
-}) async {
+    required String username,
+    required String password,
+    required String name,
+    String? phone,
+    String? email,
+  }) async {
   try {
     final client = Supabase.instance.client;
     final response = await client.rpc('rpc_register', params: {
@@ -217,6 +217,38 @@ class AuthProvider extends ChangeNotifier {
   } on PostgrestException catch (e) {
     return e.message;
   } catch (e) {
+    return 'Registration failed: $e';
+  }
+}
+
+/// Register with roles (RPC wrapper) - returns null on success, or string message on error
+Future<String?> registerWithRoles({
+  required String username,
+  required String password,
+  required String name,
+  required String phone,
+  String? email,
+  required List<Map<String, String?>> roles,
+}) async {
+  try {
+    final client = Supabase.instance.client;
+
+    await client.rpc('rpc_register_with_roles', params: {
+      'p_username': username,
+      'p_password': password,
+      'p_name': name,
+      'p_phone': phone,
+      'p_email': email,
+      'p_roles': roles, // Supabase will serialize this to JSON for the jsonb param
+    });
+
+    // If successful, just return null (no error)
+    return null;
+  } on PostgrestException catch (e) {
+    // Postgres / RPC-level error (e.g. validation failed, username exists, mixed roles, etc.)
+    return e.message;
+  } catch (e) {
+    // Anything else (network, client, etc.)
     return 'Registration failed: $e';
   }
 }
