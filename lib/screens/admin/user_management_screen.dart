@@ -17,9 +17,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   // Section expand/collapse state
   final Map<String, bool> _sectionExpanded = {
-    'pending': true,
-    'active': true,
-    'blocked': true,
+    'pending': false,
+    'active': false,
+    'blocked': false,
   };
 
   @override

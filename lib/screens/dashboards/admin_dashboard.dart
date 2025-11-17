@@ -10,6 +10,7 @@ import '../../models/daily_report.dart';
 import '../../data/questions.dart';
 import '../admin/user_management_screen.dart';
 
+
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key, this.keyValue});
   final String? keyValue;
@@ -136,16 +137,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     // Define gradient colors based on theme
     final gradientColors = isDark
-        ? [
-            const Color(0xFF0F2027), // Dark teal
-            const Color(0xFF203A43), // Darker teal
-            const Color(0xFF2C5364), // Dark blue-gray
-          ]
-        : [
-            const Color(0xFFE0EAFC), // Very light blue
-            const Color(0xFFCFDEF3), // Light blue
-            const Color(0xFFE0EAFC), // Very light blue
-          ];
+      ? [
+        const Color(0xFF0F2027), // Dark teal
+        const Color(0xFF203A43), // Darker teal
+        const Color(0xFF2C5364), // Dark blue-gray
+      ]
+      : [
+        const Color(0xFFE0EAFC), // Very light blue
+        const Color(0xFFCFDEF3), // Light blue
+        const Color(0xFFE0EAFC), // Very light blue
+      ];
 
     if (activeScope == null) {
       return Scaffold(
@@ -297,6 +298,38 @@ class _AdminDashboardState extends State<AdminDashboard> {
       );
     }
 
+    // ----------- MAIN MODIFICATION -----------
+    // GROUP REPORTS BY DIVISION AND BUILD DIVISION CARDS
+
+    Widget _buildGroupedReports() {
+      // group reports by divisionName (change to divisionId if needed)
+      final groupedReports = groupBy(_reports, (DailyReport r) => r.divisionName ?? 'Unknown Division');
+
+      if (groupedReports.isEmpty) {
+        return _buildNoReportsView();
+      }
+
+      return ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        children: groupedReports.entries.map((entry) {
+          final divisionName = entry.key;
+          final reports = entry.value;
+          // aggregate division totals
+          final totalCount = reports.fold<int>(0, (sum, r) => sum + (r.totalCount ?? 0));
+          final criticalCount = reports.fold<int>(0, (sum, r) => sum + (r.criticalCount ?? 0));
+
+          return _buildDivisionCard(
+            context,
+            divisionName: divisionName,
+            totalCount: totalCount,
+            criticalCount: criticalCount,
+            reports: reports,
+          );
+        }).toList(),
+      );
+    }
+    // ----------- END MAIN MODIFICATION -----------
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -309,23 +342,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header with greeting and buttons
               _buildHeader(),
-              
-              // Main content
-              if (_reports.isEmpty)
-                Expanded(child: _buildNoReportsView())
-              else
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    itemCount: _reports.isEmpty ? 0 : _reports.length,
-                    itemBuilder: (context, index) {
-                      final report = _reports[index];
-                      return _buildReportCard(theme, report, _expandedReportId == report.id);
-                    },
-                  ),
-                ),
+              Expanded(
+                child: _buildGroupedReports(),
+              ),
             ],
           ),
         ),
@@ -374,7 +394,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    // Total count badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -393,7 +412,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Critical count badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -418,8 +436,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ),
           ),
-          
-          // Reports list
           ...reports.map((report) {
             final isExpanded = _expandedReportId == report.id;
             return _buildReportCard(theme, report, isExpanded);
@@ -453,10 +469,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header row
                 Row(
                   children: [
-                    // Call button
                     GestureDetector(
                       onTap: report.userPhone?.isNotEmpty == true 
                           ? () => makePhoneCall(report.userPhone!)
@@ -491,7 +505,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                     const SizedBox(width: 12),
 
-                    // Title and subtitle
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,7 +530,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                     ),
 
-                    // Status indicators
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -563,7 +575,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ],
                 ),
 
-                // Expanded content
                 if (isExpanded) _buildReportDetails(report, theme),
               ],
             ),
@@ -591,7 +602,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Question indicator
                 Container(
                   width: 24,
                   height: 24,
@@ -612,7 +622,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ),
                 
-                // Question and answer
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,7 +635,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          // Total count badge
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -645,7 +653,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // Critical count badge
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
