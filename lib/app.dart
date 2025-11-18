@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProv = Provider.of<ThemeProvider>(context);
     return MaterialApp(
-      title: 'Range Reporting PWA',
+      title: 'Samiksha',
       debugShowCheckedModeBanner: false,
       themeMode: themeProv.themeMode,
       theme: ThemeData(
