@@ -1,6 +1,6 @@
 # reports_app
 
-A new Flutter project.
+KRA monitoring app.
 
 ## Getting Started
 

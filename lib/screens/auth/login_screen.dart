@@ -100,6 +100,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            const SizedBox(height: 10),
+                            // App Logo
+                            Image.network(
+                              'icons/Icon-192x192.png',
+                              height: 80,
+                              width: 80,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.account_circle, size: 80, color: Colors.grey);
+                              },
+                            ),
                             const SizedBox(height: 16),
                             Text(
                               'Welcome Back!',
