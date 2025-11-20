@@ -402,6 +402,29 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Store push subscription data
+  Future<bool> savePushSubscription(Map<String, dynamic> subscriptionData) async {
+    if (_username == null) {
+      debugPrint('Cannot save push subscription: user not logged in');
+      return false;
+    }
+    final client = Supabase.instance.client;
+    try {
+      final response = await client.from('user_push_subscriptions').upsert({
+        'userid': _userId,
+        'endpoint': subscriptionData['endpoint'],
+        'p256dh': subscriptionData['p256dh'],
+        'auth': subscriptionData['auth'],
+        'is_active': true,
+        'last_used_at': DateTime.now().toIso8601String(),
+      }).select();
+      return true;
+    } catch (e) {
+      debugPrint('Failed to save push subscription: $e');
+      return false;
+    }
+  }
+
   /// Set active scope (persist if requested)
   Future<void> setActiveScope(ActiveScope scope, {bool persist = true}) async {
     _activeScope = scope;
