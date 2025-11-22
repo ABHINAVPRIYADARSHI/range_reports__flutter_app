@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../models/user_role.dart';
 
 class UserManagementScreen extends StatefulWidget {
@@ -76,15 +77,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final themeProv = Provider.of<ThemeProvider>(context, listen: true);
     final authProvider = context.watch<AuthProvider>();
+    final gradientColors = themeProv.gradientColors;
 
     final allRoles = authProvider.userRoles;
-    final pendingRoles =
-        allRoles.where((r) => r.userStatus == 'pending').toList();
-    final activeRoles =
-        allRoles.where((r) => r.userStatus == 'active').toList();
-    final blockedRoles =
-        allRoles.where((r) => r.userStatus == 'blocked').toList();
+    final pendingRoles = allRoles
+        .where((r) => r.userStatus == 'pending')
+        .toList();
+    final activeRoles = allRoles
+        .where((r) => r.userStatus == 'active')
+        .toList();
+    final blockedRoles = allRoles
+        .where((r) => r.userStatus == 'blocked')
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -100,40 +106,49 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : RefreshIndicator(
-                  onRefresh: _loadUserRoles,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSection(
-                          context: context,
-                          statusKey: 'pending',
-                          title: 'Pending Approvals',
-                          flatRoles: pendingRoles,
-                          theme: theme,
-                        ),
-                        _buildSection(
-                          context: context,
-                          statusKey: 'active',
-                          title: 'Active Users',
-                          flatRoles: activeRoles,
-                          theme: theme,
-                        ),
-                        _buildSection(
-                          context: context,
-                          statusKey: 'blocked',
-                          title: 'Blocked Users',
-                          flatRoles: blockedRoles,
-                          theme: theme,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
+          ? Center(child: Text(_error!))
+          : RefreshIndicator(
+              onRefresh: _loadUserRoles,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSection(
+                        context: context,
+                        statusKey: 'pending',
+                        title: 'Pending Approvals',
+                        flatRoles: pendingRoles,
+                        theme: theme,
+                      ),
+                      _buildSection(
+                        context: context,
+                        statusKey: 'active',
+                        title: 'Active Users',
+                        flatRoles: activeRoles,
+                        theme: theme,
+                      ),
+                      _buildSection(
+                        context: context,
+                        statusKey: 'blocked',
+                        title: 'Blocked Users',
+                        flatRoles: blockedRoles,
+                        theme: theme,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
@@ -260,9 +275,7 @@ class _UserCardState extends State<_UserCard> {
   }
 
   void _initRoleDraft() {
-    _roleActiveDraft = {
-      for (final r in widget.roles) r.roleId: r.roleIsActive,
-    };
+    _roleActiveDraft = {for (final r in widget.roles) r.roleId: r.roleIsActive};
   }
 
   Future<void> _handleUserStatusChange(String newStatus) async {
@@ -279,13 +292,17 @@ class _UserCardState extends State<_UserCard> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User status updated to $newStatus')),
+          SnackBar(content: Text('User status updated to $newStatus'),
+          backgroundColor: Colors.green, // Green snackbar on success 
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update user status')),
+          const SnackBar(content: Text('Failed to update user status'), 
+          backgroundColor: Colors.red, // Red snackbar on failure),
+          ),
         );
       }
     } finally {
@@ -312,10 +329,7 @@ class _UserCardState extends State<_UserCard> {
 
         // Only include roles that exist in the original list
         if (widget.roles.any((r) => r.roleId == roleId)) {
-          updates.add({
-            'roleId': roleId,
-            'isActive': isActive,
-          });
+          updates.add({'roleId': roleId, 'isActive': isActive});
         }
       }
 
@@ -331,9 +345,9 @@ class _UserCardState extends State<_UserCard> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update roles')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to update roles')));
       }
     } finally {
       if (mounted) {
@@ -372,16 +386,14 @@ class _UserCardState extends State<_UserCard> {
                     children: [
                       Text(
                         _primary.name,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (_primary.email != null &&
                           _primary.email!.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Text(
-                          _primary.email!,
-                          style: theme.textTheme.bodySmall,
-                        ),
+                        Text(_primary.email!, style: theme.textTheme.bodySmall),
                       ],
                       const SizedBox(height: 4),
                       Row(
@@ -421,8 +433,9 @@ class _UserCardState extends State<_UserCard> {
             // Roles list
             Text(
               'Roles & Jurisdictions',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 4),
 
@@ -495,37 +508,25 @@ class _UserCardState extends State<_UserCard> {
       buttons = [
         TextButton(
           onPressed: canTap ? () => _handleUserStatusChange('active') : null,
-          child: const Text(
-            'Activate',
-            style: TextStyle(color: Colors.green),
-          ),
+          child: const Text('Activate', style: TextStyle(color: Colors.green)),
         ),
         TextButton(
           onPressed: canTap ? () => _handleUserStatusChange('blocked') : null,
-          child: const Text(
-            'Block',
-            style: TextStyle(color: Colors.red),
-          ),
+          child: const Text('Block', style: TextStyle(color: Colors.red)),
         ),
       ];
     } else if (status == 'active') {
       buttons = [
         TextButton(
           onPressed: canTap ? () => _handleUserStatusChange('blocked') : null,
-          child: const Text(
-            'Block user',
-            style: TextStyle(color: Colors.red),
-          ),
+          child: const Text('Block user', style: TextStyle(color: Colors.red)),
         ),
       ];
     } else if (status == 'blocked') {
       buttons = [
         TextButton(
           onPressed: canTap ? () => _handleUserStatusChange('active') : null,
-          child: const Text(
-            'Unblock',
-            style: TextStyle(color: Colors.green),
-          ),
+          child: const Text('Unblock', style: TextStyle(color: Colors.green)),
         ),
       ];
     }

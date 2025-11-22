@@ -11,7 +11,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/auth_form_field.dart';
 import '../../routes.dart';
-import '../../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,22 +28,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProv = Provider.of<ThemeProvider>(context, listen: true);
-    final isDark = themeProv.isDarkMode;
+    final gradientColors = themeProv.gradientColors;
     final theme = Theme.of(context);
-
-    // Define gradient colors based on theme
-    final gradientColors = isDark
-        ? [
-            const Color(0xFF0F2027), // Dark teal
-            const Color(0xFF203A43), // Darker teal
-            const Color(0xFF2C5364), // Dark blue-gray
-          ]
-        : [
-            const Color(0xFFE0EAFC), // Very light blue
-            const Color(0xFFCFDEF3), // Light blue
-            const Color(0xFFE0EAFC), // Very light blue
-          ];
-
+    final isDark = themeProv.isDarkMode;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark
           ? SystemUiOverlayStyle.light.copyWith(

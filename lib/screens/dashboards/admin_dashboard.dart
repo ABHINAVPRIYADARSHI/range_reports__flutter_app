@@ -149,20 +149,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final themeProv = Provider.of<ThemeProvider>(context, listen: true);
     final auth = context.watch<AuthProvider>();
     final activeScope = auth.activeScope;
-    final isDark = themeProv.isDarkMode;
-
-    // Define gradient colors based on theme
-    final gradientColors = isDark
-        ? [
-            const Color(0xFF0F2027), // Dark teal
-            const Color(0xFF203A43), // Darker teal
-            const Color(0xFF2C5364), // Dark blue-gray
-          ]
-        : [
-            const Color(0xFFE0EAFC), // Very light blue
-            const Color(0xFFCFDEF3), // Light blue
-            const Color(0xFFE0EAFC), // Very light blue
-          ];
+    final gradientColors = themeProv.gradientColors;
 
     if (activeScope == null) {
       return Scaffold(

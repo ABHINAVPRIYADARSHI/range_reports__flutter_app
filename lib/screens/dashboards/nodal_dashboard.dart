@@ -147,19 +147,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
     final themeProv = Provider.of<ThemeProvider>(context, listen: true);
     final auth = context.watch<AuthProvider>();
     final activeScope = auth.activeScope;
-    final isDark = themeProv.isDarkMode;
-
-    final gradientColors = isDark
-        ? [
-            const Color(0xFF0F2027),
-            const Color(0xFF203A43),
-            const Color(0xFF2C5364),
-          ]
-        : [
-            const Color(0xFFE0EAFC),
-            const Color(0xFFCFDEF3),
-            const Color(0xFFE0EAFC),
-          ];
+    final gradientColors = themeProv.gradientColors;
 
     if (activeScope == null) {
       return Scaffold(

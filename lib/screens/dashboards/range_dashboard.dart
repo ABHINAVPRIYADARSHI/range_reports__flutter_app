@@ -53,23 +53,10 @@ class _RangeDashboardState extends State<RangeDashboard> {
     final theme = Theme.of(context);
     final themeProv = Provider.of<ThemeProvider>(context, listen: true);
     final authProvider = Provider.of<AuthProvider>(context, listen: true);
-    final isDark = themeProv.isDarkMode;
+    final gradientColors = themeProv.gradientColors;
     final reportProvider = Provider.of<ReportProvider>(context);
     final todaysReport = reportProvider.todaysReport;
     final userName = (authProvider.user?['name'] as String?) ?? 'Officer!';
-
-    // Define gradient colors based on theme
-    final gradientColors = isDark
-        ? [
-            const Color(0xFF0F2027), // Dark teal
-            const Color(0xFF203A43), // Darker teal
-            const Color(0xFF2C5364), // Dark blue-gray
-          ]
-        : [
-            const Color(0xFFE0EAFC), // Very light blue
-            const Color(0xFFCFDEF3), // Light blue
-            const Color(0xFFE0EAFC), // Very light blue
-          ];
 
     return Scaffold(
       body: Container(

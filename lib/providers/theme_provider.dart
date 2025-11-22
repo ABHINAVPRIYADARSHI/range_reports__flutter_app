@@ -7,6 +7,18 @@ class ThemeProvider extends ChangeNotifier {
 
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
+  List<Color> get gradientColors => isDarkMode
+      ? [
+          const Color(0xFF0F2027), // Dark teal
+          const Color(0xFF203A43), // Darker teal
+          const Color(0xFF2C5364), // Dark blue-gray
+        ]
+      : [
+          const Color(0xFFE0EAFC), // Very light blue
+          const Color(0xFFCFDEF3), // Light blue
+          const Color(0xFFE0EAFC), // Very light blue
+        ];
+
   void toggleTheme() {
     if (_themeMode == ThemeMode.light) {
       _themeMode = ThemeMode.dark;

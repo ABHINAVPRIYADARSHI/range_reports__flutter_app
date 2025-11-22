@@ -5,6 +5,7 @@ import '../../data/questions.dart';
 import '../../models/daily_report.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/report_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../widgets/loader_overlay.dart';
 import 'question_row.dart';
 
@@ -48,10 +49,11 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     try {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
       if (args != null && args['mode'] == 'edit') {
         final report = args['report'] as DailyReport?;
         if (report != null) {
@@ -64,7 +66,9 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
           // Show error and go back if report data is missing
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Error: Could not load report data')),
+              const SnackBar(
+                content: Text('Error: Could not load report data'),
+              ),
             );
             Navigator.of(context).pop();
           });
@@ -74,7 +78,9 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
       // Handle any unexpected errors
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('An error occurred while loading the form')),
+          const SnackBar(
+            content: Text('An error occurred while loading the form'),
+          ),
         );
         Navigator.of(context).pop();
       });
@@ -126,11 +132,13 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
 
     final answers = <ReportAnswer>[];
     for (var i = 0; i < dailyReportQuestions.length; i++) {
-      answers.add(ReportAnswer(
-        qId: dailyReportQuestions[i].id,
-        totalCount: int.tryParse(_totalControllers[i].text) ?? 0,
-        criticalCount: int.tryParse(_criticalControllers[i].text) ?? 0,
-      ));
+      answers.add(
+        ReportAnswer(
+          qId: dailyReportQuestions[i].id,
+          totalCount: int.tryParse(_totalControllers[i].text) ?? 0,
+          criticalCount: int.tryParse(_criticalControllers[i].text) ?? 0,
+        ),
+      );
     }
 
     final report = DailyReport(
@@ -166,8 +174,10 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Report ${_mode == 'new' ? 'submitted' : 'updated'} successfully!'),
-            backgroundColor: Colors.green,  // Green snackbar on success
+            content: Text(
+              'Report ${_mode == 'new' ? 'submitted' : 'updated'} successfully!',
+            ),
+            backgroundColor: Colors.green, // Green snackbar on success
           ),
         );
         Navigator.of(context).pop();
@@ -178,8 +188,12 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   @override
   Widget build(BuildContext context) {
     final reportProvider = Provider.of<ReportProvider>(context);
-    final date = DateFormat('dd MMM, yyyy').format(_existingReport?.reportDate ?? DateTime.now());
+    final themeProv = Provider.of<ThemeProvider>(context, listen: true);
+    final date = DateFormat(
+      'dd MMM, yyyy',
+    ).format(_existingReport?.reportDate ?? DateTime.now());
     final theme = Theme.of(context);
+    final gradientColors = themeProv.gradientColors;
 
     return Scaffold(
       appBar: AppBar(
@@ -188,58 +202,81 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
         backgroundColor: theme.colorScheme.primaryContainer,
         foregroundColor: theme.colorScheme.onPrimaryContainer,
       ),
-      body: LoaderOverlay(
-        isLoading: reportProvider.isLoading,
-        message: 'Saving Report...',
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 5,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ...List.generate(dailyReportQuestions.length, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: QuestionRow(
-                          question: dailyReportQuestions[index],
-                          totalController: _totalControllers[index],
-                          criticalController: _criticalControllers[index],
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 30),
-                    _buildTotalsFooter(theme),
-                    const SizedBox(height: 30),
-                    const Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: LoaderOverlay(
+          isLoading: reportProvider.isLoading,
+          message: 'Saving Report...',
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Card(
+              elevation: 5,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ...List.generate(dailyReportQuestions.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: QuestionRow(
+                            question: dailyReportQuestions[index],
+                            totalController: _totalControllers[index],
+                            criticalController: _criticalControllers[index],
                           ),
-                          child: const Text('Cancel'),
-                        ),
-                        const SizedBox(width: 16),
-                        ElevatedButton.icon(
-                          onPressed: _submitForm,
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: Text(_mode == 'new' ? 'Submit Report' : 'Update Report'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        );
+                      }),
+                      const SizedBox(height: 30),
+                      _buildTotalsFooter(theme),
+                      const SizedBox(height: 30),
+                      const Divider(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                            ),
+                            child: const Text('Cancel'),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 16),
+                          ElevatedButton.icon(
+                            onPressed: _submitForm,
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: Text(
+                              _mode == 'new'
+                                  ? 'Submit Report'
+                                  : 'Update Report',
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -272,12 +309,16 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
       children: [
         Text(
           label,
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           '$count',
-          style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            color: theme.colorScheme.primary,
+          ),
         ),
       ],
     );
