@@ -24,11 +24,13 @@ class _NodalDashboardState extends State<NodalDashboard> {
   List<DailyReport> _reports = [];
   bool _isLoading = true;
   String? _error;
+  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
     _previousKeyValue = widget.keyValue;
+    _selectedDate = DateTime.now();
     _fetchReports();
   }
 
@@ -65,7 +67,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
       final reports = await reportProvider.getReportsForNodal(
         commissionerateId: activeScope.commissionerateId,
         divisionId: activeScope.divisionId!,
-        date: DateTime.now(),
+        date: _selectedDate,
       );
 
       if (mounted) {
@@ -83,6 +85,21 @@ class _NodalDashboardState extends State<NodalDashboard> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+      await _fetchReports();
     }
   }
 
@@ -193,10 +210,63 @@ class _NodalDashboardState extends State<NodalDashboard> {
                         color: theme.colorScheme.onSurface,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: _fetchReports,
-                      tooltip: 'Refresh',
+                    Row(
+                      children: [
+                        // Calendar Button
+                        Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () => _selectDate(context),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today,
+                                      size: 18,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Refresh Button
+                        Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.refresh, size: 22),
+                            onPressed: _fetchReports,
+                            tooltip: 'Refresh',
+                            color: theme.colorScheme.primary,
+                            padding: const EdgeInsets.all(8.0),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -335,8 +405,8 @@ class _NodalDashboardState extends State<NodalDashboard> {
           ),
         ),
       ),
-    );
-  }
+      );
+    }
 
   Widget _buildReportCard(ThemeData theme, DailyReport report, bool isExpanded) {
     return Container(

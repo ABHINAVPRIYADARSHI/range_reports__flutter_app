@@ -10,7 +10,6 @@ import '../../models/daily_report.dart';
 import '../../data/questions.dart';
 import '../admin/user_management_screen.dart';
 
-
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key, this.keyValue});
   final String? keyValue;
@@ -25,11 +24,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
   List<DailyReport> _reports = [];
   bool _isLoading = true;
   String? _error;
+  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
     _previousKeyValue = widget.keyValue;
+    _selectedDate = DateTime.now();
     _fetchReports();
   }
 
@@ -61,7 +62,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
       final reports = await reportProvider.getReportsForAdmin(
         commissionerateId: activeScope.commissionerateId,
-        date: DateTime.now(),
+        date: _selectedDate,
       );
 
       if (mounted) {
@@ -79,6 +80,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+      await _fetchReports();
     }
   }
 
@@ -137,16 +153,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     // Define gradient colors based on theme
     final gradientColors = isDark
-      ? [
-        const Color(0xFF0F2027), // Dark teal
-        const Color(0xFF203A43), // Darker teal
-        const Color(0xFF2C5364), // Dark blue-gray
-      ]
-      : [
-        const Color(0xFFE0EAFC), // Very light blue
-        const Color(0xFFCFDEF3), // Light blue
-        const Color(0xFFE0EAFC), // Very light blue
-      ];
+        ? [
+            const Color(0xFF0F2027), // Dark teal
+            const Color(0xFF203A43), // Darker teal
+            const Color(0xFF2C5364), // Dark blue-gray
+          ]
+        : [
+            const Color(0xFFE0EAFC), // Very light blue
+            const Color(0xFFCFDEF3), // Light blue
+            const Color(0xFFE0EAFC), // Very light blue
+          ];
 
     if (activeScope == null) {
       return Scaffold(
@@ -226,7 +242,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            
+
+            // Calendar Button
+            Container(
+              margin: const EdgeInsets.only(left: 8.0),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _selectDate(context),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 18,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
             // User Management Button
             Container(
               margin: const EdgeInsets.only(left: 8.0),
@@ -250,7 +306,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 constraints: const BoxConstraints(),
               ),
             ),
-            
+
             // Refresh Button
             Container(
               margin: const EdgeInsets.only(left: 8.0),
@@ -303,7 +359,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     Widget _buildGroupedReports() {
       // group reports by divisionName (change to divisionId if needed)
-      final groupedReports = groupBy(_reports, (DailyReport r) => r.divisionName ?? 'Unknown Division');
+      final groupedReports = groupBy(
+        _reports,
+        (DailyReport r) => r.divisionName ?? 'Unknown Division',
+      );
 
       if (groupedReports.isEmpty) {
         return _buildNoReportsView();
@@ -315,8 +374,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
           final divisionName = entry.key;
           final reports = entry.value;
           // aggregate division totals
-          final totalCount = reports.fold<int>(0, (sum, r) => sum + (r.totalCount ?? 0));
-          final criticalCount = reports.fold<int>(0, (sum, r) => sum + (r.criticalCount ?? 0));
+          final totalCount = reports.fold<int>(
+            0,
+            (sum, r) => sum + (r.totalCount ?? 0),
+          );
+          final criticalCount = reports.fold<int>(
+            0,
+            (sum, r) => sum + (r.criticalCount ?? 0),
+          );
 
           return _buildDivisionCard(
             context,
@@ -343,9 +408,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: Column(
             children: [
               _buildHeader(),
-              Expanded(
-                child: _buildGroupedReports(),
-              ),
+              Expanded(child: _buildGroupedReports()),
             ],
           ),
         ),
@@ -361,13 +424,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
     required List<DailyReport> reports,
   }) {
     final theme = Theme.of(context);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -418,8 +479,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: criticalCount > 0 
-                            ? Colors.red.withOpacity(0.1) 
+                        color: criticalCount > 0
+                            ? Colors.red.withOpacity(0.1)
                             : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -445,7 +506,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildReportCard(ThemeData theme, DailyReport report, bool isExpanded) {
+  Widget _buildReportCard(
+    ThemeData theme,
+    DailyReport report,
+    bool isExpanded,
+  ) {
     return Container(
       margin: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
@@ -472,7 +537,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: report.userPhone?.isNotEmpty == true 
+                      onTap: report.userPhone?.isNotEmpty == true
                           ? () => makePhoneCall(report.userPhone!)
                           : null,
                       child: Container(
@@ -510,7 +575,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            report.rangeName ?? 'Range ${report.rangeId ?? 'N/A'}',
+                            report.rangeName ??
+                                'Range ${report.rangeId ?? 'N/A'}',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -519,9 +585,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           ),
                           const SizedBox(height: 2),
                           DefaultTextStyle(
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-                            ) ?? const TextStyle(),
+                            style:
+                                theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.textTheme.bodySmall?.color
+                                      ?.withOpacity(0.7),
+                                ) ??
+                                const TextStyle(),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             child: _formatUserDisplay(report),
@@ -554,15 +623,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: (report.criticalCount ?? 0) > 0 
-                            ? Colors.red.withOpacity(0.1) 
+                        color: (report.criticalCount ?? 0) > 0
+                            ? Colors.red.withOpacity(0.1)
                             : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${report.criticalCount ?? 0} Critical',
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: (report.criticalCount ?? 0) > 0 ? Colors.red : Colors.grey,
+                          color: (report.criticalCount ?? 0) > 0
+                              ? Colors.red
+                              : Colors.grey,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -594,7 +665,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ...report.answers.map((answer) {
           final question = dailyReportQuestions.firstWhere(
             (q) => q.id == answer.qId,
-            orElse: () => const ReportQuestion(id: -1, text: 'Unknown Question'),
+            orElse: () =>
+                const ReportQuestion(id: -1, text: 'Unknown Question'),
           );
 
           return Padding(
@@ -621,7 +693,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                 ),
-                
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,17 +731,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: answer.criticalCount > 0 
-                                ? Colors.red.withOpacity(0.1) 
-                                : Colors.grey.withOpacity(0.1),
+                              color: answer.criticalCount > 0
+                                  ? Colors.red.withOpacity(0.1)
+                                  : Colors.grey.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               '${answer.criticalCount} Critical',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: answer.criticalCount > 0 
-                                  ? Colors.red 
-                                  : Colors.grey,
+                                color: answer.criticalCount > 0
+                                    ? Colors.red
+                                    : Colors.grey,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
