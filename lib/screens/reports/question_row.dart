@@ -21,10 +21,10 @@ class QuestionRow extends StatelessWidget {
     return Card(
       elevation: 1,
       margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade900
+          : const Color(0xFFF3E5F5),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
         child: Row(
@@ -74,10 +74,11 @@ class QuestionRow extends StatelessWidget {
       decoration: InputDecoration(
         labelText: labelText,
         isDense: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 12,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         labelStyle: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.primary,
         ),

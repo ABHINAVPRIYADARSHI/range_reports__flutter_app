@@ -63,7 +63,6 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
             _populateForm();
           });
         } else {
-          // Show error and go back if report data is missing
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -75,7 +74,6 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
         }
       }
     } catch (e) {
-      // Handle any unexpected errors
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -177,7 +175,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
             content: Text(
               'Report ${_mode == 'new' ? 'submitted' : 'updated'} successfully!',
             ),
-            backgroundColor: Colors.green, // Green snackbar on success
+            backgroundColor: Colors.green,
           ),
         );
         Navigator.of(context).pop();
@@ -196,11 +194,13 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
     final gradientColors = themeProv.gradientColors;
 
     return Scaffold(
+      backgroundColor: gradientColors.first,
       appBar: AppBar(
         title: Text('${_mode == 'new' ? 'New' : 'Edit'} Report - $date'),
-        elevation: 4,
-        backgroundColor: theme.colorScheme.primaryContainer,
-        foregroundColor: theme.colorScheme.onPrimaryContainer,
+        elevation: 6,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        centerTitle: true,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -213,69 +213,110 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
         child: LoaderOverlay(
           isLoading: reportProvider.isLoading,
           message: 'Saving Report...',
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ...List.generate(dailyReportQuestions.length, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: QuestionRow(
-                            question: dailyReportQuestions[index],
-                            totalController: _totalControllers[index],
-                            criticalController: _criticalControllers[index],
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                color: theme.colorScheme.surface,
+                elevation: 10,
+                shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Daily Activity Summary',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
                           ),
-                        );
-                      }),
-                      const SizedBox(height: 30),
-                      _buildTotalsFooter(theme),
-                      const SizedBox(height: 30),
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            style: OutlinedButton.styleFrom(
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Please fill in the counts for each category below.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ...List.generate(dailyReportQuestions.length, (index) {
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 6.0),
+                            elevation: 1.5,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
+                                vertical: 8.0,
+                                horizontal: 4,
+                              ),
+                              child: QuestionRow(
+                                question: dailyReportQuestions[index],
+                                totalController: _totalControllers[index],
+                                criticalController: _criticalControllers[index],
                               ),
                             ),
-                            child: const Text('Cancel'),
-                          ),
-                          const SizedBox(width: 16),
-                          ElevatedButton.icon(
-                            onPressed: _submitForm,
-                            icon: const Icon(Icons.check_circle_outline),
-                            label: Text(
-                              _mode == 'new'
-                                  ? 'Submit Report'
-                                  : 'Update Report',
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
+                          );
+                        }),
+                        const SizedBox(height: 24),
+                        _buildTotalsFooter(theme),
+                        const SizedBox(height: 24),
+                        const Divider(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            OutlinedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: theme.colorScheme.onSurface,
+                                side: BorderSide(
+                                  color:
+                                      theme.colorScheme.outline.withOpacity(0.6),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 16),
+                            ElevatedButton.icon(
+                              onPressed: _submitForm,
+                              icon: const Icon(Icons.check_circle_outline),
+                              label: Text(
+                                _mode == 'new'
+                                    ? 'Submit Report'
+                                    : 'Update Report',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: theme.colorScheme.onPrimary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 26,
+                                  vertical: 13,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 4,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -288,9 +329,11 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
 
   Widget _buildTotalsFooter(ThemeData theme) {
     return Card(
-      color: theme.colorScheme.surfaceContainerHighest,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      color: theme.colorScheme.secondaryContainer,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18.0),
         child: Row(
@@ -305,19 +348,23 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
   }
 
   Widget _totalCountColumn(String label, int count, ThemeData theme) {
+    final bool isCritical = label == 'Critical Count' && count > 0;
+
     return Column(
       children: [
         Text(
           label,
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
+            color: isCritical ? theme.colorScheme.error : theme.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           '$count',
           style: theme.textTheme.headlineSmall?.copyWith(
-            color: theme.colorScheme.primary,
+            color: isCritical ? theme.colorScheme.error : theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
