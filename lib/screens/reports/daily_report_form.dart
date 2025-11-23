@@ -89,7 +89,7 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
 
   void _populateForm() {
     if (_existingReport == null) return;
-    for (var answer in _existingReport!.answers) {
+    for (var answer in _existingReport!.answers ?? []) {
       final index = dailyReportQuestions.indexWhere((q) => q.id == answer.qId);
       if (index != -1) {
         _totalControllers[index].text = answer.totalCount.toString();
@@ -142,14 +142,11 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
     }
 
     final report = DailyReport(
-      id: _existingReport?.id,
+      reportId: _existingReport?.reportId,
       reportDate: _existingReport?.reportDate ?? DateTime.now(),
       commissionerateId: activeScope.commissionerateId,
-      commissionerateName: activeScope.commissionerateName,
       divisionId: activeScope.divisionId ?? 'N/A',
-      divisionName: activeScope.divisionName,
       rangeId: activeScope.rangeId!,
-      rangeName: activeScope.rangeName,
       submittedBy: authProvider.userId!,
       answers: answers,
       totalCount: _totalSum,
@@ -160,7 +157,10 @@ class _DailyReportFormScreenState extends State<DailyReportFormScreen> {
     if (_mode == 'new') {
       errorMessage = await reportProvider.insertDailyReport(report);
     } else {
-      errorMessage = await reportProvider.updateDailyReport(report.id!, report);
+      errorMessage = await reportProvider.updateDailyReport(
+        report.reportId!,
+        report,
+      );
     }
 
     if (mounted) {

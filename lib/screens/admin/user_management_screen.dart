@@ -292,16 +292,18 @@ class _UserCardState extends State<_UserCard> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User status updated to $newStatus'),
-          backgroundColor: Colors.green, // Green snackbar on success 
+          SnackBar(
+            content: Text('User status updated to $newStatus'),
+            backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update user status'), 
-          backgroundColor: Colors.red, // Red snackbar on failure),
+          const SnackBar(
+            content: Text('Failed to update user status'),
+            backgroundColor: Colors.red,
           ),
         );
       }

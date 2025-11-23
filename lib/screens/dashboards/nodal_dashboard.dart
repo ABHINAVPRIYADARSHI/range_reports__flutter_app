@@ -128,8 +128,8 @@ class _NodalDashboardState extends State<NodalDashboard> {
   }
 
   Widget _formatUserDisplay(DailyReport report) {
-    final name = report.userName ?? '';
-    final phone = report.userPhone ?? '';
+    final name = report.name ?? '';
+    final phone = report.phone ?? '';
 
     if (name.isNotEmpty && phone.isNotEmpty) {
       return Text('$name • $phone');
@@ -170,8 +170,14 @@ class _NodalDashboardState extends State<NodalDashboard> {
     }
 
     final divisionName = activeScope.divisionName ?? 'Division Unknown';
-    final totalCount = _reports.fold<int>(0, (sum, r) => sum + (r.totalCount ?? 0));
-    final criticalCount = _reports.fold<int>(0, (sum, r) => sum + (r.criticalCount ?? 0));
+    final totalCount = _reports.fold<int>(
+      0,
+      (sum, r) => sum + (r.totalCount ?? 0),
+    );
+    final criticalCount = _reports.fold<int>(
+      0,
+      (sum, r) => sum + (r.criticalCount ?? 0),
+    );
 
     return Scaffold(
       body: Container(
@@ -227,10 +233,11 @@ class _NodalDashboardState extends State<NodalDashboard> {
                                     const SizedBox(width: 6),
                                     Text(
                                       '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -264,153 +271,201 @@ class _NodalDashboardState extends State<NodalDashboard> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _error != null
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                _error!,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.error,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            _error!,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.error,
                             ),
-                          )
-                        : _reports.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.assignment_outlined,
-                                      size: 64,
-                                      color: theme.colorScheme.primary.withOpacity(0.5),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : _reports.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.assignment_outlined,
+                              size: 64,
+                              color: theme.colorScheme.primary.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No reports found for today',
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _fetchReports,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Refresh'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        children: [
+                          Card(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                InkWell(
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    topRight: Radius.circular(12),
+                                  ),
+                                  onTap: _toggleDivisionExpanded,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary
+                                          .withOpacity(0.1),
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(12),
+                                        topRight: Radius.circular(12),
+                                      ),
                                     ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No reports found for today',
-                                      style: theme.textTheme.titleMedium,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    TextButton.icon(
-                                      onPressed: _fetchReports,
-                                      icon: const Icon(Icons.refresh),
-                                      label: const Text('Refresh'),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                children: [
-                                  Card(
-                                    margin: const EdgeInsets.only(bottom: 16),
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    child: Row(
                                       children: [
-                                        InkWell(
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(12),
-                                            topRight: Radius.circular(12),
-                                          ),
-                                          onTap: _toggleDivisionExpanded,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.primary.withOpacity(0.1),
-                                              borderRadius: const BorderRadius.only(
-                                                topLeft: Radius.circular(12),
-                                                topRight: Radius.circular(12),
-                                              ),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    divisionName,
-                                                    style: theme.textTheme.titleMedium?.copyWith(
-                                                      fontWeight: FontWeight.bold,
-                                                      color: theme.colorScheme.primary,
-                                                    ),
-                                                  ),
+                                        Expanded(
+                                          child: Text(
+                                            divisionName,
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color:
+                                                      theme.colorScheme.primary,
                                                 ),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: theme.colorScheme.primary.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    '$totalCount Total',
-                                                    style: theme.textTheme.labelSmall?.copyWith(
-                                                      color: theme.colorScheme.primary,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: criticalCount > 0
-                                                        ? Colors.red.withOpacity(0.1)
-                                                        : Colors.grey.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    '$criticalCount Critical',
-                                                    style: theme.textTheme.labelSmall?.copyWith(
-                                                      color: criticalCount > 0 ? Colors.red : Colors.grey,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Icon(
-                                                  _isDivisionExpanded ? Icons.expand_less : Icons.expand_more,
-                                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                                )
-                                              ],
-                                            ),
                                           ),
                                         ),
-                                        if (_isDivisionExpanded)
-                                          ..._reports.map((report) {
-                                            final isExpanded = _expandedReportId == report.id;
-                                            return _buildReportCard(theme, report, isExpanded);
-                                          }).toList(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '$totalCount Total',
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color:
+                                                      theme.colorScheme.primary,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: criticalCount > 0
+                                                ? Colors.red.withOpacity(0.1)
+                                                : Colors.grey.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '$criticalCount Critical',
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color: criticalCount > 0
+                                                      ? Colors.red
+                                                      : Colors.grey,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          _isDivisionExpanded
+                                              ? Icons.expand_less
+                                              : Icons.expand_more,
+                                          color: theme.colorScheme.onSurface
+                                              .withOpacity(0.6),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                                if (_isDivisionExpanded)
+                                  ..._reports.map((report) {
+                                    final uniqueId =
+                                        '${report.submittedBy}_${report.divisionId}_${report.rangeId}';
+                                    final isExpanded =
+                                        _expandedReportId == uniqueId;
+                                    return _buildReportCard(
+                                      theme,
+                                      report,
+                                      isExpanded,
+                                    );
+                                  }).toList(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
               ),
             ],
           ),
         ),
       ),
-      );
-    }
+    );
+  }
 
-  Widget _buildReportCard(ThemeData theme, DailyReport report, bool isExpanded) {
+  Widget _buildReportCard(
+    ThemeData theme,
+    DailyReport report,
+    bool isExpanded,
+  ) {
+    final isNotSubmitted = !(report.hasSubmitted ?? false);
+
     return Container(
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: isNotSubmitted
+                ? Colors.red.withOpacity(0.3)
+                : Colors.green.withOpacity(0.8),
+            blurRadius: 4.0,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _toggleExpandReport(report.id),
+          onTap: () {
+            final uniqueId =
+                '${report.submittedBy}_${report.divisionId}_${report.rangeId}';
+            _toggleExpandReport(uniqueId);
+          },
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -419,7 +474,9 @@ class _NodalDashboardState extends State<NodalDashboard> {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: report.userPhone?.isNotEmpty == true ? () => makePhoneCall(report.userPhone!) : null,
+                      onTap: report.phone?.isNotEmpty == true
+                          ? () => makePhoneCall(report.phone!)
+                          : null,
                       child: Container(
                         width: 40,
                         height: 40,
@@ -454,7 +511,8 @@ class _NodalDashboardState extends State<NodalDashboard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            report.rangeName ?? 'Range ${report.rangeId ?? 'N/A'}',
+                            report.rangeName ??
+                                'Range ${report.rangeId ?? 'N/A'}',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -463,9 +521,12 @@ class _NodalDashboardState extends State<NodalDashboard> {
                           ),
                           const SizedBox(height: 2),
                           DefaultTextStyle(
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-                            ) ?? const TextStyle(),
+                            style:
+                                theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.textTheme.bodySmall?.color
+                                      ?.withOpacity(0.7),
+                                ) ??
+                                const TextStyle(),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             child: _formatUserDisplay(report),
@@ -473,8 +534,38 @@ class _NodalDashboardState extends State<NodalDashboard> {
                         ],
                       ),
                     ),
+                    // Submission Status Badge
+                    if (report.hasSubmitted == true)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: Colors.green,
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -489,15 +580,22 @@ class _NodalDashboardState extends State<NodalDashboard> {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: (report.criticalCount ?? 0) > 0 ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                        color: (report.criticalCount ?? 0) > 0
+                            ? Colors.red.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${report.criticalCount ?? 0} Critical',
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: (report.criticalCount ?? 0) > 0 ? Colors.red : Colors.grey,
+                          color: (report.criticalCount ?? 0) > 0
+                              ? Colors.red
+                              : Colors.grey,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -509,7 +607,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
                     ),
                   ],
                 ),
-                if (isExpanded) _buildReportDetails(report),
+                if (isExpanded) _buildReportDetails(report, theme),
               ],
             ),
           ),
@@ -518,19 +616,18 @@ class _NodalDashboardState extends State<NodalDashboard> {
     );
   }
 
-  Widget _buildReportDetails(DailyReport report) {
-    final theme = Theme.of(context);
-
+  Widget _buildReportDetails(DailyReport report, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 12),
         const Divider(height: 1),
         const SizedBox(height: 12),
-        ...report.answers.map((answer) {
+        ...(report.answers ?? []).map((answer) {
           final question = dailyReportQuestions.firstWhere(
             (q) => q.id == answer.qId,
-            orElse: () => const ReportQuestion(id: -1, text: 'Unknown Question'),
+            orElse: () =>
+                const ReportQuestion(id: -1, text: 'Unknown Question'),
           );
 
           return Padding(
@@ -548,7 +645,7 @@ class _NodalDashboardState extends State<NodalDashboard> {
                   ),
                   child: Center(
                     child: Text(
-                      '${report.answers.indexOf(answer) + 1}',
+                      '${(report.answers ?? []).indexOf(answer) + 1}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -571,7 +668,10 @@ class _NodalDashboardState extends State<NodalDashboard> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
@@ -586,7 +686,10 @@ class _NodalDashboardState extends State<NodalDashboard> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: answer.criticalCount > 0
                                   ? Colors.red.withOpacity(0.1)
@@ -596,16 +699,18 @@ class _NodalDashboardState extends State<NodalDashboard> {
                             child: Text(
                               '${answer.criticalCount} Critical',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: answer.criticalCount > 0 ? Colors.red : Colors.grey,
+                                color: answer.criticalCount > 0
+                                    ? Colors.red
+                                    : Colors.grey,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                          )
+                          ),
                         ],
-                      )
+                      ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           );

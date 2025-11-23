@@ -98,14 +98,71 @@ class ReportProvider with ChangeNotifier {
   }
 
   // For nodal officer - Fetches all reports based on commissionerate, division, and date
-  Future<List<DailyReport>> getReportsForNodal({
+  // Future<List<DailyReport>> getReportsForNodal({
+  //   required String commissionerateId,
+  //   required String divisionId,
+  //   required DateTime date,
+  // }) async {
+  //   // Schedule the loading state update for the next frame
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     if (_isLoading == false) { // Only update if not already loading
+  //       _isLoading = true;
+  //       notifyListeners();
+  //     }
+  //   });
+
+  //   try {
+  //     final client = Supabase.instance.client;
+  //     final dateString = date.toIso8601String().substring(0, 10);
+
+  //     final response = await client
+  //         .from('daily_reports')
+  //         .select('*, users:submitted_by(name, phone)')
+  //         .eq('commissionerate_id', commissionerateId)
+  //         .eq('division_id', divisionId)
+  //         .eq('report_date', dateString);
+
+  //     if (response is List) {
+  //       final reports = response.map((json) {
+  //         // Flatten the user data
+  //         final flattenedJson = Map<String, dynamic>.from(json);
+  //         if (json['users'] != null) {
+  //           flattenedJson['user_name'] = json['users']['name'];
+  //           flattenedJson['user_phone'] = json['users']['phone'];
+  //         }
+  //         flattenedJson.remove('users'); // Remove nested object
+  //         return DailyReport.fromJson(flattenedJson);
+  //       }).toList();
+  //        // Sort reports by rangeId (assuming rangeId is a String)
+  //       reports.sort((a, b) {
+  //         final idA = a.rangeId ?? '';
+  //         final idB = b.rangeId ?? '';
+  //         return idA.compareTo(idB);
+  //       });
+  //       return reports;
+  //     }
+  //     return [];
+  //   } catch (e) {
+  //     debugPrint('Error fetching reports for nodal officer: $e');
+  //     rethrow;
+  //   } finally {
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       _isLoading = false;
+  //       notifyListeners();
+  //     });
+  //   }
+  // }
+
+
+// For Nodal officer - Fetches all reports based on commissionerate, division & date
+Future<List<DailyReport>> getReportsForNodal({
     required String commissionerateId,
     required String divisionId,
     required DateTime date,
   }) async {
     // Schedule the loading state update for the next frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_isLoading == false) { // Only update if not already loading
+      if (_isLoading == false) {
         _isLoading = true;
         notifyListeners();
       }
@@ -115,37 +172,42 @@ class ReportProvider with ChangeNotifier {
       final client = Supabase.instance.client;
       final dateString = date.toIso8601String().substring(0, 10);
 
-      final response = await client
-          .from('daily_reports')
-          .select('*, users:submitted_by(name, phone)')
-          .eq('commissionerate_id', commissionerateId)
-          .eq('division_id', divisionId)
-          .eq('report_date', dateString);
+      // 🚀 CALL THE RPC INSTEAD OF QUERYING daily_reports
+      final response = await client.rpc(
+        'rpc_range_officer_reports',
+        params: {
+          'report_for_date': dateString,
+          'in_commissionerate_id': commissionerateId,
+          'in_division_id': divisionId,
+        },
+      );
 
       if (response is List) {
         final reports = response.map((json) {
-          // Flatten the user data
-          final flattenedJson = Map<String, dynamic>.from(json);
-          if (json['users'] != null) {
-            flattenedJson['user_name'] = json['users']['name'];
-            flattenedJson['user_phone'] = json['users']['phone'];
-          }
-          flattenedJson.remove('users'); // Remove nested object
-          return DailyReport.fromJson(flattenedJson);
+          // The RPC already returns flattened data (no nested "users")
+          return DailyReport.fromJson(Map<String, dynamic>.from(json));
         }).toList();
-         // Sort reports by rangeId (assuming rangeId is a String)
+
+        // Sort by divisionId → rangeId (same as your current logic)
         reports.sort((a, b) {
-          final idA = a.rangeId ?? '';
-          final idB = b.rangeId ?? '';
-          return idA.compareTo(idB);
+          final divA = a.divisionId ?? '';
+          final divB = b.divisionId ?? '';
+          if (divA != divB) return divA.compareTo(divB);
+
+          final rangeA = a.rangeId ?? '';
+          final rangeB = b.rangeId ?? '';
+          return rangeA.compareTo(rangeB);
         });
+
         return reports;
       }
+
       return [];
     } catch (e) {
-      debugPrint('Error fetching reports for nodal officer: $e');
+      debugPrint('Error fetching reports for admin: $e');
       rethrow;
     } finally {
+      // Schedule the loading state reset for the next frame
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _isLoading = false;
         notifyListeners();
@@ -154,13 +216,75 @@ class ReportProvider with ChangeNotifier {
   }
 
   // For Admin officer - Fetches all reports based on commissionerate & date
-  Future<List<DailyReport>> getReportsForAdmin({
+  // Future<List<DailyReport>> getReportsForAdmin({
+  //   required String commissionerateId,
+  //   required DateTime date,
+  // }) async {
+  //   // Schedule the loading state update for the next frame
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     if (_isLoading == false) { // Only update if not already loading
+  //       _isLoading = true;
+  //       notifyListeners();
+  //     }
+  //   });
+
+  //   try {
+  //     final client = Supabase.instance.client;
+  //     final dateString = date.toIso8601String().substring(0, 10);
+
+  //     final response = await client
+  //         .from('daily_reports')
+  //         .select('*, users:submitted_by(name, phone)')
+  //         .eq('commissionerate_id', commissionerateId)
+  //         .eq('report_date', dateString);
+
+  //     if (response is List) {
+  //       final reports = response.map((json) {
+  //         // Flatten the user data
+  //         final flattenedJson = Map<String, dynamic>.from(json);
+  //         if (json['users'] != null) {
+  //           flattenedJson['user_name'] = json['users']['name'];
+  //           flattenedJson['user_phone'] = json['users']['phone'];
+  //         }
+  //         flattenedJson.remove('users'); // Remove nested object
+  //         return DailyReport.fromJson(flattenedJson);
+  //       }).toList();
+        
+  //       // Sort reports by divisionId and then rangeId
+  //       reports.sort((a, b) {
+  //         final divA = a.divisionId ?? '';
+  //         final divB = b.divisionId ?? '';
+  //         if (divA != divB) return divA.compareTo(divB);
+          
+  //         final rangeA = a.rangeId ?? '';
+  //         final rangeB = b.rangeId ?? '';
+  //         return rangeA.compareTo(rangeB);
+  //       });
+        
+  //       return reports;
+  //     }
+  //     return [];
+  //   } catch (e) {
+  //     debugPrint('Error fetching reports for admin: $e');
+  //     rethrow;
+  //   } finally {
+  //     // Schedule the loading state reset for the next frame
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       _isLoading = false;
+  //       notifyListeners();
+  //     });
+  //   }
+  // }
+
+
+// For Admin officer - Fetches all reports based on commissionerate & date
+Future<List<DailyReport>> getReportsForAdmin({
     required String commissionerateId,
     required DateTime date,
   }) async {
     // Schedule the loading state update for the next frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_isLoading == false) { // Only update if not already loading
+      if (_isLoading == false) {
         _isLoading = true;
         notifyListeners();
       }
@@ -170,37 +294,37 @@ class ReportProvider with ChangeNotifier {
       final client = Supabase.instance.client;
       final dateString = date.toIso8601String().substring(0, 10);
 
-      final response = await client
-          .from('daily_reports')
-          .select('*, users:submitted_by(name, phone)')
-          .eq('commissionerate_id', commissionerateId)
-          .eq('report_date', dateString);
+      // 🚀 CALL THE RPC INSTEAD OF QUERYING daily_reports
+      final response = await client.rpc(
+        'rpc_range_officer_reports',
+        params: {
+          'report_for_date': dateString,
+          'in_commissionerate_id': commissionerateId,
+          'in_division_id':
+              null, // Admin sees ALL divisions under the commissionerate
+        },
+      );
 
       if (response is List) {
         final reports = response.map((json) {
-          // Flatten the user data
-          final flattenedJson = Map<String, dynamic>.from(json);
-          if (json['users'] != null) {
-            flattenedJson['user_name'] = json['users']['name'];
-            flattenedJson['user_phone'] = json['users']['phone'];
-          }
-          flattenedJson.remove('users'); // Remove nested object
-          return DailyReport.fromJson(flattenedJson);
+          // The RPC already returns flattened data (no nested "users")
+          return DailyReport.fromJson(Map<String, dynamic>.from(json));
         }).toList();
-        
-        // Sort reports by divisionId and then rangeId
+
+        // Sort by divisionId → rangeId (same as your current logic)
         reports.sort((a, b) {
           final divA = a.divisionId ?? '';
           final divB = b.divisionId ?? '';
           if (divA != divB) return divA.compareTo(divB);
-          
+
           final rangeA = a.rangeId ?? '';
           final rangeB = b.rangeId ?? '';
           return rangeA.compareTo(rangeB);
         });
-        
+
         return reports;
       }
+
       return [];
     } catch (e) {
       debugPrint('Error fetching reports for admin: $e');

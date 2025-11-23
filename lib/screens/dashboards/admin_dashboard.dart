@@ -106,7 +106,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   String _getUserInitials(DailyReport report) {
-    final name = report.userName ?? '';
+    final name = report.name ?? '';
     if (name.isEmpty) return 'N/A';
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) {
@@ -129,8 +129,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _formatUserDisplay(DailyReport report) {
-    final name = report.userName ?? '';
-    final phone = report.userPhone ?? '';
+    final name = report.name ?? '';
+    final phone = report.phone ?? '';
 
     if (name.isNotEmpty && phone.isNotEmpty) {
       return Text('$name • $phone');
@@ -485,7 +485,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ),
           ...reports.map((report) {
-            final isExpanded = _expandedReportId == report.id;
+            final uniqueId =
+                '${report.submittedBy}_${report.divisionId}_${report.rangeId}';
+            final isExpanded = _expandedReportId == uniqueId;
             return _buildReportCard(theme, report, isExpanded);
           }),
         ],
@@ -498,24 +500,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
     DailyReport report,
     bool isExpanded,
   ) {
+    final isNotSubmitted = !(report.hasSubmitted ?? false);
+
     return Container(
       margin: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
-        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isNotSubmitted
+                ? Colors.red.withOpacity(0.3)
+                : Colors.green.withOpacity(1.0),
             blurRadius: 4.0,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(12.0),
         child: InkWell(
           borderRadius: BorderRadius.circular(12.0),
-          onTap: () => _toggleExpandReport(report.id),
+          onTap: () {
+            final uniqueId =
+                '${report.submittedBy}_${report.divisionId}_${report.rangeId}';
+            _toggleExpandReport(uniqueId);
+          },
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -524,8 +534,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: report.userPhone?.isNotEmpty == true
-                          ? () => makePhoneCall(report.userPhone!)
+                      onTap: report.phone?.isNotEmpty == true
+                          ? () => makePhoneCall(report.phone!)
                           : null,
                       child: Container(
                         width: 40,
@@ -586,6 +596,33 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                     ),
 
+                    // Submission Status Badge
+                    if (report.hasSubmitted == true)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: Colors.green,
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -649,7 +686,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         const SizedBox(height: 12),
         const Divider(height: 1),
         const SizedBox(height: 12),
-        ...report.answers.map((answer) {
+        ...(report.answers ?? []).map((answer) {
           final question = dailyReportQuestions.firstWhere(
             (q) => q.id == answer.qId,
             orElse: () =>
@@ -671,7 +708,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                   child: Center(
                     child: Text(
-                      '${report.answers.indexOf(answer) + 1}',
+                      '${(report.answers ?? []).indexOf(answer) + 1}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -680,7 +717,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
