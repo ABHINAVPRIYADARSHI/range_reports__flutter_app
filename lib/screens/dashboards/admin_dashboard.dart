@@ -501,181 +501,161 @@ class _AdminDashboardState extends State<AdminDashboard> {
     bool isExpanded,
   ) {
     final isNotSubmitted = !(report.hasSubmitted ?? false);
+    final borderColor = isNotSubmitted ? Colors.red.withOpacity(0.5) : Colors.green.withOpacity(0.5);
 
-    return Container(
-      margin: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: isNotSubmitted
-                ? Colors.red.withOpacity(0.3)
-                : Colors.green.withOpacity(1.0),
-            blurRadius: 4.0,
-            offset: const Offset(0, 2),
+    return Stack(
+      children: [
+        Container(
+          margin: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.0),
+            boxShadow: [
+              BoxShadow(
+                color: isNotSubmitted
+                    ? Colors.red.withOpacity(0.3)
+                    : Colors.green.withOpacity(0.5),
+                blurRadius: 4.0,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12.0),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12.0),
-          onTap: () {
-            final uniqueId =
-                '${report.submittedBy}_${report.divisionId}_${report.rangeId}';
-            _toggleExpandReport(uniqueId);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Material(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(12.0),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12.0),
+              onTap: () {
+                final uniqueId =
+                    '${report.submittedBy}_${report.divisionId}_${report.rangeId}';
+                _toggleExpandReport(uniqueId);
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: report.phone?.isNotEmpty == true
-                          ? () => makePhoneCall(report.phone!)
-                          : null,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.blue.shade400,
-                              Colors.blue.shade600,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withOpacity(0.4),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                    const SizedBox(height: 4), // Space for the floating label
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: report.phone?.isNotEmpty == true
+                              ? () => makePhoneCall(report.phone!)
+                              : null,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.blue.shade400,
+                                  Colors.blue.shade600,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.4),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: const Icon(
+                              Icons.phone_in_talk,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.phone_in_talk,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            report.rangeName ??
-                                'Range ${report.rangeId ?? 'N/A'}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            report.name ?? 'N/A',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
-                          DefaultTextStyle(
-                            style:
-                                theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.textTheme.bodySmall?.color
-                                      ?.withOpacity(0.7),
-                                ) ??
-                                const TextStyle(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            child: _formatUserDisplay(report),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Submission Status Badge
-                    if (report.hasSubmitted == true)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.green.withOpacity(0.5),
-                            width: 1.5,
+                        
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: Colors.green,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${report.totalCount ?? 0} Total',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${report.totalCount ?? 0} Total',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: (report.criticalCount ?? 0) > 0
+                                ? Colors.red.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${report.criticalCount ?? 0} Critical',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: (report.criticalCount ?? 0) > 0
+                                  ? Colors.red
+                                  : Colors.grey,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (report.criticalCount ?? 0) > 0
-                            ? Colors.red.withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${report.criticalCount ?? 0} Critical',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: (report.criticalCount ?? 0) > 0
-                              ? Colors.red
-                              : Colors.grey,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(width: 8),
+                        Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      isExpanded ? Icons.expand_less : Icons.expand_more,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    ),
+                    if (isExpanded) _buildReportDetails(report, theme),
                   ],
                 ),
-
-                if (isExpanded) _buildReportDetails(report, theme),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        // Range name as notched label
+        Positioned(
+          left: 24,
+          top: 0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              report.rangeName ?? 'Range ${report.rangeId ?? 'N/A'}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: borderColor,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
