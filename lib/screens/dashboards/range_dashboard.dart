@@ -62,10 +62,16 @@ class _RangeDashboardState extends State<RangeDashboard> {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          final activeScope = authProvider.activeScope;
+          
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const NonFilersReportScreen(),
+              builder: (context) => NonFilersReportScreen(
+                divisionId: activeScope?.divisionId,
+                rangeId: activeScope?.rangeId,
+              ),
             ),
           );
         },

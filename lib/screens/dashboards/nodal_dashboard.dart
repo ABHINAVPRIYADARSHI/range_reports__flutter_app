@@ -221,7 +221,9 @@ class _NodalDashboardState extends State<NodalDashboard> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const NonFilersReportScreen(),
+                            builder: (context) => NonFilersReportScreen(
+                              divisionId: activeScope?.divisionId,
+                            ),
                           ),
                         );
                       },

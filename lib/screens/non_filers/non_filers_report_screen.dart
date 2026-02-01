@@ -8,7 +8,14 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 
 class NonFilersReportScreen extends StatefulWidget {
-  const NonFilersReportScreen({super.key});
+  final String? divisionId;
+  final String? rangeId;
+  
+  const NonFilersReportScreen({
+    super.key,
+    this.divisionId,
+    this.rangeId,
+  });
 
   @override
   State<NonFilersReportScreen> createState() => _NonFilersReportScreenState();
@@ -40,23 +47,27 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     try {
       final auth = context.read<AuthProvider>();
       final supabase = Supabase.instance.client;
-      final user = auth.user;
+      final activeScope = auth.activeScope;
       
-      if (user == null) {
-        throw Exception('User not authenticated');
+      if (activeScope == null) {
+        throw Exception('No active scope selected');
       }
 
-      String userRole = user['role'] ?? '';
-      String? userRangeId = user['range_id'];
-      String? userDivisionId = user['division_id'];
+      String userRole = activeScope.role ?? '';
+      String? userRangeId = activeScope.rangeId;
+      String? userDivisionId = activeScope.divisionId;
 
+      // Use routing parameters if provided, otherwise fall back to activeScope data
+      String? effectiveRangeId = widget.rangeId ?? userRangeId;
+      String? effectiveDivisionId = widget.divisionId ?? userDivisionId;
+      debugPrint('Fetching reports for role: $userRole, Division: $effectiveDivisionId, Range: $effectiveRangeId');
       var query = supabase.from('call_reports').select('*');
 
       // Apply role-based filtering
-      if (userRole == 'range_officer' && userRangeId != null) {
-        query = query.eq('range_id', userRangeId);
-      } else if (userRole == 'nodal_officer' && userDivisionId != null) {
-        query = query.eq('division_id', userDivisionId);
+      if (userRole == 'range_officer' && effectiveRangeId != null && effectiveDivisionId != null) {
+        query = query.eq('range_id', effectiveRangeId).eq('division_id', effectiveDivisionId);
+      } else if (userRole == 'nodal_officer' && effectiveDivisionId != null) {
+        query = query.eq('division_id', effectiveDivisionId);
       }
       // Admin sees all records (no additional filter)
 
@@ -722,13 +733,21 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                       makePhoneCall(mobileNo);
                     }
                   },
-                  child: Icon(
-                    Icons.phone_in_talk, 
-                    size: 16, 
-                    color: theme.colorScheme.primary,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.phone_in_talk, 
+                      size: 16, 
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () {
                     final mobileNo = report['mobile_no']?.toString();
