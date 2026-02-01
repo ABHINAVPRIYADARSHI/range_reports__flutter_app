@@ -9,6 +9,7 @@ import '../../providers/theme_provider.dart';
 import '../../models/daily_report.dart';
 import '../../data/questions.dart';
 import '../admin/user_management_screen.dart';
+import '../non_filers/non_filers_report_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key, this.keyValue});
@@ -288,6 +289,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   );
                 },
                 tooltip: 'User Management',
+                color: theme.colorScheme.primary,
+                padding: const EdgeInsets.all(8.0),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+
+            // Non-filers Report Button
+            Container(
+              margin: const EdgeInsets.only(left: 8.0),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.file_present_outlined, size: 22),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NonFilersReportScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'Non-filers Report',
                 color: theme.colorScheme.primary,
                 padding: const EdgeInsets.all(8.0),
                 constraints: const BoxConstraints(),
