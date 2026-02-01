@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 
@@ -99,6 +100,22 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
         _groupedReports[groupKey] = [];
       }
       _groupedReports[groupKey]!.add(report);
+    }
+  }
+
+  Future<void> makePhoneCall(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrlString(phoneUri.toString())) {
+      await launchUrlString(phoneUri.toString());
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not launch phone call to $phoneNumber'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -227,7 +244,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
           final division = _getCellValue(row[2]);
           final range = _getCellValue(row[3]);
           final lastFiledMonth = _getCellValue(row[4]);
-          final lastFiledDate = _getCellValue(row[5]);
+          final lastFiledDate = _formatDate(_getCellValue(row[5]));
           final mobileNo = _getCellValue(row[6]);
 
           // debugPrint('Step 5: Row $i - GSTIN: $gstin, Trade: $tradeName');
@@ -303,6 +320,17 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     if (cell == null) return '';
     if (cell.value == null) return '';
     return cell.value.toString().trim();
+  }
+
+  String _formatDate(dynamic dateValue) {
+    if (dateValue == null || dateValue.toString().trim().isEmpty) {
+      return '';
+    }
+    
+    final String dateStr = dateValue.toString().trim();
+    
+    // Remove timestamp part using regex (T00:00:00.000Z pattern)
+    return dateStr.replaceAll(RegExp(r'T\d{2}:\d{2}:\d{2}\.\d{3}Z'), '');
   }
 
 
@@ -668,10 +696,14 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                 Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 4),
                 Text(
-                  'Month: ${report['last_filed_month'] ?? 'N/A'}',
+                  'Last filed month: ${report['last_filed_month'] ?? 'N/A'}',
                   style: theme.textTheme.bodySmall,
                 ),
-                const SizedBox(width: 16),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
                 Icon(Icons.event, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 4),
                 Text(
@@ -683,13 +715,40 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.phone_in_talk, size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'Mobile: ${report['mobile_no'] ?? 'N/A'}',
-                  style: theme.textTheme.bodySmall,
+                GestureDetector(
+                  onTap: () {
+                    final mobileNo = report['mobile_no']?.toString();
+                    if (mobileNo != null && mobileNo.isNotEmpty && mobileNo != 'N/A') {
+                      makePhoneCall(mobileNo);
+                    }
+                  },
+                  child: Icon(
+                    Icons.phone_in_talk, 
+                    size: 16, 
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () {
+                    final mobileNo = report['mobile_no']?.toString();
+                    if (mobileNo != null && mobileNo.isNotEmpty && mobileNo != 'N/A') {
+                      makePhoneCall(mobileNo);
+                    }
+                  },
+                  child: Text(
+                    'Mobile: ${report['mobile_no'] ?? 'N/A'}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
