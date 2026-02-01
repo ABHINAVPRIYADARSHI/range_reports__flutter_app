@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/report_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../routes.dart';
+import '../non_filers/non_filers_report_screen.dart';
 
 class RangeDashboard extends StatefulWidget {
   const RangeDashboard({super.key});
@@ -59,6 +60,20 @@ class _RangeDashboardState extends State<RangeDashboard> {
     final userName = (authProvider.user?['name'] as String?) ?? 'Officer!';
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NonFilersReportScreen(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.assignment_outlined),
+        label: const Text('Non-filers Report'),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

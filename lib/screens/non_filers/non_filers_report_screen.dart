@@ -15,6 +15,7 @@ class NonFilersReportScreen extends StatefulWidget {
 
 class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
   List<Map<String, dynamic>> _reports = [];
+  Map<String, List<Map<String, dynamic>>> _groupedReports = {};
   bool _isLoading = true;
   bool _isUploading = false;
   String? _error;
@@ -63,6 +64,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
       if (mounted) {
         setState(() {
           _reports = List<Map<String, dynamic>>.from(response);
+          _groupReports();
         });
       }
     } catch (e) {
@@ -75,6 +77,28 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  void _groupReports() {
+    if (_reports == null || _reports.isEmpty) {
+      _groupedReports = {};
+      return;
+    }
+    
+    _groupedReports.clear();
+    
+    for (var report in _reports) {
+      if (report == null) continue;
+      
+      final divisionId = report['division_id']?.toString() ?? 'Unknown Division';
+      final rangeId = report['range_id']?.toString() ?? 'Unknown Range';
+      final groupKey = '$divisionId-$rangeId';
+      
+      if (!_groupedReports.containsKey(groupKey)) {
+        _groupedReports[groupKey] = [];
+      }
+      _groupedReports[groupKey]!.add(report);
     }
   }
 
@@ -281,6 +305,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     return cell.value.toString().trim();
   }
 
+
   Future<bool> _showDeleteConfirmation() async {
     final result = await showDialog<bool>(
       context: context,
@@ -481,29 +506,228 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
               ],
             ),
           ),
-          // Table Content with both horizontal and vertical scrolling
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  showCheckboxColumn: isAdmin,
-                  columns: [
-                    const DataColumn(label: Text('GSTIN')),
-                    const DataColumn(label: Text('Trade Name')),
-                    const DataColumn(label: Text('Division')),
-                    const DataColumn(label: Text('Range')),
-                    const DataColumn(label: Text('Last Filed Month')),
-                    const DataColumn(label: Text('Last Filed Date')),
-                    const DataColumn(label: Text('Mobile No')),
-                    const DataColumn(label: Text('Status')),
-                    const DataColumn(label: Text('Actions')),
-                  ],
-                  rows: _reports.map((report) => _buildDataRow(report, isAdmin)).toList(),
-                ),
+          // Table Content with grouped card-based display
+          Expanded(
+            child: (_groupedReports == null || _groupedReports.isEmpty || _groupedReports.length == 0)
+                ? _buildEmptyState()
+                : ListView.builder(
+                    itemCount: _groupedReports.keys.length,
+                    itemBuilder: (context, index) {
+                      final groupKey = _groupedReports.keys.elementAt(index);
+                      final reports = _groupedReports[groupKey] ?? [];
+                      final parts = groupKey.split('-');
+                      final divisionId = parts.isNotEmpty ? parts[0] : 'Unknown';
+                      final rangeId = parts.length > 1 ? parts[1] : 'Unknown';
+                      
+                      return _buildGroupedCard(divisionId, rangeId, reports, isAdmin);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.file_present_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No non-filers data found',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _fetchReports,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refresh'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupedCard(String divisionId, String rangeId, List<Map<String, dynamic>> reports, bool isAdmin) {
+    final theme = Theme.of(context);
+    
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
+      child: Column(
+        children: [
+          // Group Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12.0),
+                topRight: Radius.circular(12.0),
               ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.business, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Division: $divisionId',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                Icon(Icons.location_on, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Range: $rangeId',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${reports.length} records',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Individual Report Cards
+          ...reports.map((report) => _buildReportCard(report, isAdmin)).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportCard(Map<String, dynamic> report, bool isAdmin) {
+    final theme = Theme.of(context);
+    final id = report['id'].toString();
+    final isSelected = _selectedIds.contains(id);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      child: ExpansionTile(
+        leading: isAdmin 
+            ? Checkbox(
+                value: isSelected,
+                onChanged: (value) => _toggleSelection(id),
+              )
+            : null,
+        title: Text(
+          '${report['gstin'] ?? 'N/A'} - ${report['trade_name'] ?? 'N/A'}',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.location_on, size: 16, color: theme.colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Range: ${report['range_id'] ?? 'N/A'}',
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.business, size: 16, color: theme.colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Division: ${report['division_id'] ?? 'N/A'}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Month: ${report['last_filed_month'] ?? 'N/A'}',
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.event, size: 16, color: theme.colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Date: ${report['last_filed_date'] ?? 'N/A'}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.phone_in_talk, size: 16, color: theme.colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Mobile: ${report['mobile_no'] ?? 'N/A'}',
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(width: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(report['status'] ?? 'N/A'),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Status: ${report['status'] ?? 'N/A'}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Comments',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildCommentField('Comment 1:', report['comment_1'], isAdmin, report, 1),
+                const SizedBox(height: 12),
+                _buildCommentField('Comment 2:', report['comment_2'], isAdmin, report, 2),
+                const SizedBox(height: 12),
+                _buildCommentField('Comment 3:', report['comment_3'], isAdmin, report, 3),
+              ],
             ),
           ),
         ],
@@ -511,31 +735,80 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     );
   }
 
-  DataRow _buildDataRow(Map<String, dynamic> report, bool isAdmin) {
-    final id = report['id'].toString();
-    final isSelected = _selectedIds.contains(id);
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'completed':
+        return Colors.green;
+      case 'in progress':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
 
-    return DataRow(
-      selected: isSelected,
-      onSelectChanged: isAdmin ? (value) => _toggleSelection(id) : null,
-      cells: [
-        DataCell(Text(report['gstin'] ?? 'N/A')),
-        DataCell(Text(report['trade_name'] ?? 'N/A')),
-        DataCell(Text(report['division_id'] ?? 'N/A')),
-        DataCell(Text(report['range_id'] ?? 'N/A')),
-        DataCell(Text(report['last_filed_month'] ?? 'N/A')),
-        DataCell(Text(report['last_filed_date'] ?? 'N/A')),
-        DataCell(Text(report['mobile_no'] ?? 'N/A')),
-        DataCell(Text(report['status'] ?? 'N/A')),
-        DataCell(
-          IconButton(
-            icon: const Icon(Icons.expand_more),
-            onPressed: () => _showCommentsDialog(report),
-            tooltip: 'View Comments',
+  Widget _buildCommentField(String label, String? comment, bool isAdmin, Map<String, dynamic> report, int commentNumber) {
+    final theme = Theme.of(context);
+    final controller = TextEditingController(text: comment ?? '');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          enabled: isAdmin,
+          maxLines: 2,
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            hintText: isAdmin ? 'Enter comment...' : 'No comment added',
+            filled: !isAdmin,
+            fillColor: isAdmin ? null : theme.colorScheme.surface.withOpacity(0.5),
           ),
+          onSubmitted: (value) {
+            if (isAdmin) {
+              _updateComment(report['id'], commentNumber, value.trim());
+            }
+          },
         ),
       ],
     );
+  }
+
+  Future<void> _updateComment(String reportId, int commentNumber, String comment) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final commentField = 'comment_$commentNumber';
+      
+      await supabase.from('call_reports').update({
+        commentField: comment.isEmpty ? null : comment,
+      }).eq('id', reportId);
+
+      await _fetchReports();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comment updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update comment: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showCommentsDialog(Map<String, dynamic> report) {

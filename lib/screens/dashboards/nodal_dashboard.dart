@@ -7,6 +7,7 @@ import '../../providers/report_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../models/daily_report.dart';
 import '../../data/questions.dart';
+import '../non_filers/non_filers_report_screen.dart';
 
 class NodalDashboard extends StatefulWidget {
   const NodalDashboard({super.key, this.keyValue});
@@ -213,6 +214,20 @@ class _NodalDashboardState extends State<NodalDashboard> {
                       onPressed: _fetchReports,
                       padding: const EdgeInsets.all(8.0),
                       constraints: const BoxConstraints(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.assignment_outlined, color: Color.fromARGB(255, 171, 68, 68)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NonFilersReportScreen(),
+                          ),
+                        );
+                      },
+                      padding: const EdgeInsets.all(8.0),
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Non-filers Report',
                     ),
                     IconButton(
                       icon: const Icon(Icons.calendar_today, color: Color.fromARGB(255, 171, 68, 68), size: 20),
