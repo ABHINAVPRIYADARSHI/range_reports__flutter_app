@@ -800,11 +800,11 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildCommentField('Comment 1:', report['comment_1'], isAdmin, report, 1),
+                _buildCommentField('Comment 1:', report['comment_1'], report, 1),
                 const SizedBox(height: 12),
-                _buildCommentField('Comment 2:', report['comment_2'], isAdmin, report, 2),
+                _buildCommentField('Comment 2:', report['comment_2'], report, 2),
                 const SizedBox(height: 12),
-                _buildCommentField('Comment 3:', report['comment_3'], isAdmin, report, 3),
+                _buildCommentField('Comment 3:', report['comment_3'], report, 3),
               ],
             ),
           ),
@@ -817,7 +817,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     switch (status.toLowerCase()) {
       case 'pending':
         return Colors.orange;
-      case 'completed':
+      case 'contacted':
         return Colors.green;
       case 'in progress':
         return Colors.blue;
@@ -826,7 +826,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     }
   }
 
-  Widget _buildCommentField(String label, String? comment, bool isAdmin, Map<String, dynamic> report, int commentNumber) {
+  Widget _buildCommentField(String label, String? comment, Map<String, dynamic> report, int commentNumber) {
     final theme = Theme.of(context);
     final controller = TextEditingController(text: comment ?? '');
     
@@ -840,18 +840,25 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          enabled: isAdmin,
+          enabled: true, // Allow all users to edit comments
           maxLines: 2,
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
-            hintText: isAdmin ? 'Enter comment...' : 'No comment added',
-            filled: !isAdmin,
-            fillColor: isAdmin ? null : theme.colorScheme.surface.withOpacity(0.5),
+            hintText: 'Enter comment...',
+            filled: false,
+            suffixIcon: IconButton(
+              icon: Icon(
+                Icons.save,
+                color: theme.colorScheme.primary,
+              ),
+              onPressed: () {
+                _updateComment(report['id'], commentNumber, controller.text.trim());
+              },
+              tooltip: 'Save Comment',
+            ),
           ),
           onSubmitted: (value) {
-            if (isAdmin) {
-              _updateComment(report['id'], commentNumber, value.trim());
-            }
+            _updateComment(report['id'], commentNumber, value.trim());
           },
         ),
       ],
@@ -859,25 +866,42 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
   }
 
   Future<void> _updateComment(String reportId, int commentNumber, String comment) async {
+    if (comment.trim().isEmpty) {
+      debugPrint('Comment is empty, skipping update');
+      return;
+    }
+
+    // Prepend current date and time to the comment
+    final now = DateTime.now();
+    final formattedDate = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final formattedTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final commentWithTimestamp = '[$formattedDate $formattedTime] $comment';
+    
+    debugPrint('Updating comment for report ID: $reportId, comment number: $commentNumber, value: "$commentWithTimestamp"');
+    
     try {
       final supabase = Supabase.instance.client;
       final commentField = 'comment_$commentNumber';
       
       await supabase.from('call_reports').update({
-        commentField: comment.isEmpty ? null : comment,
+        commentField: commentWithTimestamp,
+        'status': 'contacted', // Update status when comment is added
       }).eq('id', reportId);
 
+      debugPrint('Comment update successful for report ID: $reportId');
+      
       await _fetchReports();
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Comment updated successfully'),
+          SnackBar(
+            content: Text('Comment $commentNumber updated successfully'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
+      debugPrint('Failed to update comment: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -939,17 +963,26 @@ class _CommentsDialogState extends State<_CommentsDialog> {
   }
 
   Future<void> _saveComments() async {
-    if (!widget.isAdmin) return;
-
     setState(() => _isSaving = true);
 
     try {
       final supabase = Supabase.instance.client;
       
+      // Helper function to prepend timestamp to comment
+      String prependTimestamp(String comment) {
+        if (comment.trim().isEmpty) return comment;
+        
+        final now = DateTime.now();
+        final formattedDate = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+        final formattedTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+        return '[$formattedDate $formattedTime] $comment';
+      }
+      
       await supabase.from('call_reports').update({
-        'comment_1': _comment1Controller.text.trim(),
-        'comment_2': _comment2Controller.text.trim(),
-        'comment_3': _comment3Controller.text.trim(),
+        'comment_1': prependTimestamp(_comment1Controller.text.trim()),
+        'comment_2': prependTimestamp(_comment2Controller.text.trim()),
+        'comment_3': prependTimestamp(_comment3Controller.text.trim()),
+        'status': 'contacted', // Update status when comments are saved
       }).eq('id', widget.report['id']);
 
       widget.onSave();
@@ -1060,13 +1093,17 @@ class _CommentsDialogState extends State<_CommentsDialog> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          enabled: isAdmin,
+          enabled: true, // Allow all users to edit comments
           maxLines: 3,
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
-            hintText: isAdmin ? 'Enter comment...' : 'No comment added',
-            filled: !isAdmin,
-            fillColor: isAdmin ? null : theme.colorScheme.surface.withOpacity(0.5),
+            hintText: 'Enter comment...',
+            filled: false,
+            suffixIcon: Icon(
+              Icons.edit,
+              color: theme.colorScheme.primary,
+              size: 20,
+            ),
           ),
         ),
       ],
