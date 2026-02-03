@@ -674,6 +674,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                 onChanged: (value) => _toggleSelection(id),
               )
             : null,
+        trailing: const SizedBox.shrink(), // Hide default expansion icon
         title: Text(
           '${report['gstin'] ?? 'N/A'} - ${report['trade_name'] ?? 'N/A'}',
           style: theme.textTheme.titleSmall?.copyWith(
@@ -718,8 +719,27 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                 Icon(Icons.event, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 4),
                 Text(
-                  'Date: ${report['last_filed_date'] ?? 'N/A'}',
+                  'Filed Date: ${report['last_filed_date'] ?? 'N/A'}',
                   style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(report['status'] ?? 'N/A'),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Status: ${report['status'] ?? 'N/A'}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -742,8 +762,8 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                     ),
                     child: Icon(
                       Icons.phone_in_talk, 
-                      size: 16, 
-                      color: theme.colorScheme.primary,
+                      size: 22, 
+                      color: Colors.blue,
                     ),
                   ),
                 ),
@@ -759,27 +779,21 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                     'Mobile: ${report['mobile_no'] ?? 'N/A'}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.primary,
-                      decoration: TextDecoration.underline,
+                      // decoration: TextDecoration.underline,
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
+                const SizedBox(width: 24),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(report['status'] ?? 'N/A'),
+                    color: theme.colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    'Status: ${report['status'] ?? 'N/A'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Icon(
+                    Icons.add,
+                    size: 20,
+                    color: Colors.blue,
                   ),
                 ),
               ],
