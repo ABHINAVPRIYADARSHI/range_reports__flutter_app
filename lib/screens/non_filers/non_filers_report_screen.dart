@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' hide Border;
+import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -389,13 +389,136 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
+          child: _buildContent(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopSummary() {
+    final theme = Theme.of(context);
+    final contactedCount = _reports.where((report) {
+      final status = report['status']?.toString().toLowerCase() ?? '';
+      return status == 'contacted';
+    }).length;
+    final pendingCount = _reports.where((report) {
+      final status = report['status']?.toString().toLowerCase() ?? '';
+      return status == 'pending';
+    }).length;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary.withOpacity(0.96),
+            theme.colorScheme.primaryContainer.withOpacity(0.92),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              if (isAdmin) _buildAdminActions(),
-              Expanded(child: _buildContent()),
+              Text(
+                'Overview',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_reports.length} records',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onPrimary.withOpacity(0.86),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _buildOverviewMetric(
+                label: 'Total',
+                value: _reports.length.toString(),
+                icon: Icons.receipt_long_rounded,
+              ),
+              _buildOverviewMetric(
+                label: 'Contacted',
+                value: contactedCount.toString(),
+                icon: Icons.call_outlined,
+              ),
+              _buildOverviewMetric(
+                label: 'Pending',
+                value: pendingCount.toString(),
+                icon: Icons.pending_actions_rounded,
+              ),
+              _buildOverviewMetric(
+                label: 'Groups',
+                value: _groupedReports.length.toString(),
+                icon: Icons.account_tree_outlined,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewMetric({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.14),
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: theme.colorScheme.onPrimary, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onPrimary.withOpacity(0.88),
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -404,51 +527,105 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     final theme = Theme.of(context);
     
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Upload Excel Button
-              Expanded(
-                child: _isUploading
-                    ? ElevatedButton.icon(
-                        onPressed: null,
-                        icon: const SizedBox(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+
+          final uploadButton = InkWell(
+            onTap: _isUploading ? null : _uploadExcelFile,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _isUploading
+                      ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          Icons.add_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 18,
                         ),
-                        label: const Text('Uploading...'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      )
-                    : ElevatedButton.icon(
-                        onPressed: _uploadExcelFile,
-                        icon: const Icon(Icons.upload_file),
-                        label: const Text('Upload Excel'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isUploading ? 'Uploading...' : 'Upload excel',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              // Delete Button (visible only when records are selected)
-              if (_selectedIds.isNotEmpty)
-                ElevatedButton.icon(
+            ),
+          );
+
+          final deleteButton = _selectedIds.isNotEmpty
+              ? ElevatedButton.icon(
                   onPressed: _deleteSelectedRecords,
-                  icon: const Icon(Icons.delete),
+                  icon: const Icon(Icons.delete_outline_rounded),
                   label: Text('Delete (${_selectedIds.length})'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                ),
+                )
+              : null;
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                uploadButton,
+                if (deleteButton != null) ...[
+                  const SizedBox(height: 10),
+                  deleteButton,
+                ],
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: uploadButton),
+              if (deleteButton != null) ...[
+                const SizedBox(width: 12),
+                deleteButton,
+              ],
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -473,33 +650,21 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
       );
     }
 
-    if (_reports.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.file_present_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No non-filers data found',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: _fetchReports,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-            ),
-          ],
-        ),
-      );
-    }
+    final isAdmin = _isAdmin();
 
-    return _buildDataTable();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Column(
+        children: [
+          _buildTopSummary(),
+          if (isAdmin) _buildAdminActions(),
+          if (_reports.isEmpty)
+            _buildEmptyState()
+          else
+            _buildDataTable(),
+        ],
+      ),
+    );
   }
 
   Widget _buildDataTable() {
@@ -508,17 +673,29 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
 
     return Card(
       margin: const EdgeInsets.all(16.0),
+      elevation: 0,
+      color: theme.colorScheme.surface.withOpacity(0.95),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Table Header
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary.withOpacity(0.12),
+                  theme.colorScheme.primaryContainer.withOpacity(0.18),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12.0),
-                topRight: Radius.circular(12.0),
+                topLeft: Radius.circular(28.0),
+                topRight: Radius.circular(28.0),
               ),
             ),
             child: Row(
@@ -529,66 +706,190 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                     onChanged: (value) => _toggleSelectAll(),
                   ),
                 Expanded(
-                  child: Text(
-                    'Total Records: ${_reports.length}',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_reports.length} records',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      if (_groupedReports.isNotEmpty)
+                        Text(
+                          '${_groupedReports.length} groups',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                IconButton(
-                  onPressed: _fetchReports,
-                  icon: const Icon(Icons.refresh),
-                  tooltip: 'Refresh',
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    onPressed: _fetchReports,
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: 'Refresh',
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ],
             ),
           ),
-          // Table Content with grouped card-based display
-          Expanded(
-            child: (_groupedReports == null || _groupedReports.isEmpty || _groupedReports.length == 0)
-                ? _buildEmptyState()
-                : ListView.builder(
-                    itemCount: _groupedReports.keys.length,
-                    itemBuilder: (context, index) {
-                      final groupKey = _groupedReports.keys.elementAt(index);
-                      final reports = _groupedReports[groupKey] ?? [];
-                      final parts = groupKey.split('-');
-                      final divisionId = parts.isNotEmpty ? parts[0] : 'Unknown';
-                      final rangeId = parts.length > 1 ? parts[1] : 'Unknown';
-                      
-                      return _buildGroupedCard(divisionId, rangeId, reports, isAdmin);
-                    },
-                  ),
+          if (_groupedReports == null || _groupedReports.isEmpty || _groupedReports.length == 0)
+            _buildEmptyState()
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
+              child: Column(
+                children: _groupedReports.keys.map((groupKey) {
+                  final reports = _groupedReports[groupKey] ?? [];
+                  final parts = groupKey.split('-');
+                  final divisionId = parts.isNotEmpty ? parts[0] : 'Unknown';
+                  final rangeId = parts.length > 1 ? parts[1] : 'Unknown';
+
+                  return _buildGroupedCard(divisionId, rangeId, reports, isAdmin);
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoPill({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withOpacity(0.14),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 16, color: theme.colorScheme.primary),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+              children: [
+                TextSpan(
+                  text: '$label: ',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                TextSpan(text: value),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.file_present_outlined,
-            size: 64,
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+      child: Container(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: theme.colorScheme.outline.withOpacity(0.12),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'No non-filers data found',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: _fetchReports,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Refresh'),
-          ),
-        ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 78,
+              height: 78,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.file_present_outlined,
+                size: 38,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'No non-filers data found',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try refreshing to check for newly uploaded or updated records.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextButton.icon(
+              onPressed: _fetchReports,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Refresh'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -597,63 +898,74 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     final theme = Theme.of(context);
     
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 3,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      elevation: 0,
+      color: theme.colorScheme.surface.withOpacity(0.96),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Column(
         children: [
-          // Group Header
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(18.0),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary.withOpacity(0.14),
+                  theme.colorScheme.secondary.withOpacity(0.08),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12.0),
-                topRight: Radius.circular(12.0),
+                topLeft: Radius.circular(24.0),
+                topRight: Radius.circular(24.0),
               ),
             ),
-            child: Row(
+            child: Wrap(
+              runSpacing: 12,
+              spacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Icon(Icons.business, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Division: $divisionId',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.account_balance_outlined,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
-                Icon(Icons.location_on, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
                 Text(
-                  'Range: $rangeId',
+                  'Division $divisionId',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${reports.length} records',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                _buildInfoPill(
+                  icon: Icons.location_on_outlined,
+                  label: 'Range $rangeId',
+                  color: theme.colorScheme.primary,
+                ),
+                _buildInfoPill(
+                  icon: Icons.layers_outlined,
+                  label: '${reports.length} records',
+                  color: theme.colorScheme.secondary,
                 ),
               ],
             ),
           ),
-          // Individual Report Cards
-          ...reports.map((report) => _buildReportCard(report, isAdmin)).toList(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+            child: Column(
+              children: reports.map((report) => _buildReportCard(report, isAdmin)).toList(),
+            ),
+          ),
         ],
       ),
     );
@@ -664,145 +976,155 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     final id = report['id'].toString();
     final isSelected = _selectedIds.contains(id);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? theme.colorScheme.primary.withOpacity(0.06)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isSelected
+              ? theme.colorScheme.primary.withOpacity(0.45)
+              : theme.colorScheme.outline.withOpacity(0.12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
         leading: isAdmin 
             ? Checkbox(
                 value: isSelected,
                 onChanged: (value) => _toggleSelection(id),
               )
             : null,
-        trailing: const SizedBox.shrink(), // Hide default expansion icon
         title: Text(
-          '${report['gstin'] ?? 'N/A'} - ${report['trade_name'] ?? 'N/A'}',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+          '${report['gstin'] ?? 'N/A'}',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'Range: ${report['range_id'] ?? 'N/A'}',
-                  style: theme.textTheme.bodySmall,
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                report['trade_name'] ?? 'N/A',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(width: 16),
-                Icon(Icons.business, size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'Division: ${report['division_id'] ?? 'N/A'}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'Last filed month: ${report['last_filed_month'] ?? 'N/A'}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.event, size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'Filed Date: ${report['last_filed_date'] ?? 'N/A'}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(report['status'] ?? 'N/A'),
-                    borderRadius: BorderRadius.circular(12),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildInfoPill(
+                    icon: Icons.location_on_outlined,
+                    label: 'Range ${report['range_id'] ?? 'N/A'}',
+                    color: theme.colorScheme.primary,
                   ),
-                  child: Text(
-                    'Status: ${report['status'] ?? 'N/A'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  _buildInfoPill(
+                    icon: Icons.business_outlined,
+                    label: 'Division ${report['division_id'] ?? 'N/A'}',
+                    color: theme.colorScheme.secondary,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    final mobileNo = report['mobile_no']?.toString();
-                    if (mobileNo != null && mobileNo.isNotEmpty && mobileNo != 'N/A') {
-                      makePhoneCall(mobileNo);
-                    }
-                  },
-                  child: Container(
-                    width: 32,
-                    height: 32,
+                  _buildInfoPill(
+                    icon: Icons.calendar_month_outlined,
+                    label: 'Last filed month: ${report['last_filed_month'] ?? 'N/A'}',
+                    color: Colors.teal,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildDetailRow(
+                icon: Icons.event_outlined,
+                label: 'Filed Date',
+                value: report['last_filed_date'] ?? 'N/A',
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
+                      color: _getStatusColor(report['status'] ?? 'N/A'),
+                      borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Icon(
-                      Icons.phone_in_talk, 
-                      size: 22, 
-                      color: Colors.blue,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    final mobileNo = report['mobile_no']?.toString();
-                    if (mobileNo != null && mobileNo.isNotEmpty && mobileNo != 'N/A') {
-                      makePhoneCall(mobileNo);
-                    }
-                  },
-                  child: Text(
-                    'Mobile: ${report['mobile_no'] ?? 'N/A'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      // decoration: TextDecoration.underline,
+                    child: Text(
+                      'Status: ${report['status'] ?? 'N/A'}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                  GestureDetector(
+                    onTap: () {
+                      final mobileNo = report['mobile_no']?.toString();
+                      if (mobileNo != null && mobileNo.isNotEmpty && mobileNo != 'N/A') {
+                        makePhoneCall(mobileNo);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.green.withOpacity(0.18),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.phone_in_talk,
+                            size: 18,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            report['mobile_no'] ?? 'N/A',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.add,
-                    size: 20,
-                    color: Colors.blue,
-                  ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
         children: [
-          Padding(
+          Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(18),
+            ),
             child: _buildCommentsSection(report),
           ),
         ],
@@ -875,7 +1197,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
               ),
             ),
             child: Text(
-              'No comments added yet. Add the first update below.',
+              'No comments added yet. Add the first comment below.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -1078,7 +1400,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
                 width: 1.5,
               ),
             ),
-            hintText: 'Write an update...',
+            hintText: 'Add a comment...',
             filled: true,
             fillColor: theme.colorScheme.surface,
             suffixIcon: IconButton(
