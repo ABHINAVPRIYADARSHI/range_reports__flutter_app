@@ -1110,12 +1110,24 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
 
     return _ParsedComment(
       timestamp: match.group(1)?.trim(),
-      body: (match.group(2) ?? '').trim(),
+      body: _stripLeadingTimestamps(match.group(2) ?? ''),
     );
   }
 
+  String _stripLeadingTimestamps(String value) {
+    var result = value.trim();
+    final timestampPrefix = RegExp(r'^\[[^\]]+\]\s*', dotAll: true);
+
+    while (timestampPrefix.hasMatch(result)) {
+      result = result.replaceFirst(timestampPrefix, '').trimLeft();
+    }
+
+    return result.trim();
+  }
+
   Future<void> _showEditCommentDialog(Map<String, dynamic> report, _CommentEntry entry) async {
-    final controller = TextEditingController(text: entry.comment);
+    final parsedComment = _parseComment(entry.comment);
+    final controller = TextEditingController(text: parsedComment.body);
     final theme = Theme.of(context);
 
     await showDialog<void>(
@@ -1158,7 +1170,9 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
   }
 
   Future<void> _updateComment(String reportId, int commentNumber, String comment) async {
-    if (comment.trim().isEmpty) {
+    final sanitizedComment = _stripLeadingTimestamps(comment);
+
+    if (sanitizedComment.trim().isEmpty) {
       debugPrint('Comment is empty, skipping update');
       return;
     }
@@ -1167,7 +1181,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     final now = DateTime.now();
     final formattedDate = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
     final formattedTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    final commentWithTimestamp = '[$formattedDate $formattedTime] $comment';
+    final commentWithTimestamp = '[$formattedDate $formattedTime] $sanitizedComment';
     
     debugPrint('Updating comment for report ID: $reportId, comment number: $commentNumber, value: "$commentWithTimestamp"');
     
@@ -1241,9 +1255,15 @@ class _CommentsDialogState extends State<_CommentsDialog> {
   @override
   void initState() {
     super.initState();
-    _comment1Controller = TextEditingController(text: widget.report['comment_1'] ?? '');
-    _comment2Controller = TextEditingController(text: widget.report['comment_2'] ?? '');
-    _comment3Controller = TextEditingController(text: widget.report['comment_3'] ?? '');
+    _comment1Controller = TextEditingController(
+      text: _extractCommentBody(widget.report['comment_1']),
+    );
+    _comment2Controller = TextEditingController(
+      text: _extractCommentBody(widget.report['comment_2']),
+    );
+    _comment3Controller = TextEditingController(
+      text: _extractCommentBody(widget.report['comment_3']),
+    );
   }
 
   @override
@@ -1400,6 +1420,22 @@ class _CommentsDialogState extends State<_CommentsDialog> {
         ),
       ],
     );
+  }
+
+  String _extractCommentBody(dynamic value) {
+    final rawComment = value?.toString() ?? '';
+    return _stripLeadingTimestamps(rawComment);
+  }
+
+  String _stripLeadingTimestamps(String value) {
+    var result = value.trim();
+    final timestampPrefix = RegExp(r'^\[[^\]]+\]\s*', dotAll: true);
+
+    while (timestampPrefix.hasMatch(result)) {
+      result = result.replaceFirst(timestampPrefix, '').trimLeft();
+    }
+
+    return result.trim();
   }
 }
 
