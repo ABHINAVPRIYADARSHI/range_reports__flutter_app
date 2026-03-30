@@ -1,0 +1,4 @@
+flutter run -d chrome
+
+Once tested in local, directly commit and push to GitHub.
+It gets auto deployed on Vercel.

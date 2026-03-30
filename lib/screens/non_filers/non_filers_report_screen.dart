@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -803,24 +803,7 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Comments',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildCommentField('Comment 1:', report['comment_1'], report, 1),
-                const SizedBox(height: 12),
-                _buildCommentField('Comment 2:', report['comment_2'], report, 2),
-                const SizedBox(height: 12),
-                _buildCommentField('Comment 3:', report['comment_3'], report, 3),
-              ],
-            ),
+            child: _buildCommentsSection(report),
           ),
         ],
       ),
@@ -840,6 +823,225 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     }
   }
 
+  Widget _buildCommentsSection(Map<String, dynamic> report) {
+    final theme = Theme.of(context);
+    final comments = _getCommentEntries(report);
+    final visibleComments = comments.where((entry) => entry.comment.trim().isNotEmpty).toList();
+    final nextComment = comments.cast<_CommentEntry?>().firstWhere(
+      (entry) => entry != null && entry.comment.trim().isEmpty,
+      orElse: () => null,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Comments',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const Spacer(),
+            if (visibleComments.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${visibleComments.length}/3 saved',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (visibleComments.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: Text(
+              'No comments added yet. Add the first update below.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          )
+        else
+          ...visibleComments.asMap().entries.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _buildSavedCommentTimelineItem(
+                entry: item.value,
+                report: report,
+                isFirst: item.key == 0,
+                isLast: item.key == visibleComments.length - 1,
+              ),
+            ),
+          ),
+        if (nextComment != null) ...[
+          const SizedBox(height: 8),
+          _buildCommentField(
+            '',
+            nextComment.comment,
+            report,
+            nextComment.number,
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          Text(
+            'All 3 comment slots are used. You can still edit an existing comment using its edit button.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<_CommentEntry> _getCommentEntries(Map<String, dynamic> report) {
+    return [
+      _CommentEntry(number: 1, comment: report['comment_1']?.toString() ?? ''),
+      _CommentEntry(number: 2, comment: report['comment_2']?.toString() ?? ''),
+      _CommentEntry(number: 3, comment: report['comment_3']?.toString() ?? ''),
+    ];
+  }
+
+  Widget _buildSavedCommentTimelineItem({
+    required _CommentEntry entry,
+    required Map<String, dynamic> report,
+    required bool isFirst,
+    required bool isLast,
+  }) {
+    final theme = Theme.of(context);
+    final parsedComment = _parseComment(entry.comment);
+    final lineColor = theme.colorScheme.primary;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 44,
+          child: Column(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                color: isFirst ? Colors.transparent : lineColor,
+              ),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: theme.colorScheme.onPrimary.withOpacity(0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    '${entry.number}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                width: 4,
+                height: 72,
+                color: isLast ? Colors.transparent : lineColor,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.15),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (parsedComment.timestamp != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: theme.colorScheme.primary.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Text(
+                            parsedComment.timestamp!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      Text(
+                        parsedComment.body.isEmpty ? entry.comment : parsedComment.body,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _showEditCommentDialog(report, entry),
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: theme.colorScheme.primary,
+                  ),
+                  tooltip: 'Edit comment ${entry.number}',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCommentField(String label, String? comment, Map<String, dynamic> report, int commentNumber) {
     final theme = Theme.of(context);
     final controller = TextEditingController(text: comment ?? '');
@@ -847,19 +1049,38 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 8),
+        if (label.trim().isNotEmpty) ...[
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+        ],
         TextField(
           controller: controller,
           enabled: true, // Allow all users to edit comments
-          maxLines: 2,
+          minLines: 2,
+          maxLines: 3,
           decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            hintText: 'Enter comment...',
-            filled: false,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: theme.colorScheme.outline.withOpacity(0.4),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: theme.colorScheme.primary,
+                width: 1.5,
+              ),
+            ),
+            hintText: 'Write an update...',
+            filled: true,
+            fillColor: theme.colorScheme.surface,
             suffixIcon: IconButton(
               icon: Icon(
                 Icons.save,
@@ -876,6 +1097,63 @@ class _NonFilersReportScreenState extends State<NonFilersReportScreen> {
           },
         ),
       ],
+    );
+  }
+
+  _ParsedComment _parseComment(String rawComment) {
+    final trimmed = rawComment.trim();
+    final match = RegExp(r'^\[([^\]]+)\]\s*(.*)$', dotAll: true).firstMatch(trimmed);
+
+    if (match == null) {
+      return _ParsedComment(timestamp: null, body: trimmed);
+    }
+
+    return _ParsedComment(
+      timestamp: match.group(1)?.trim(),
+      body: (match.group(2) ?? '').trim(),
+    );
+  }
+
+  Future<void> _showEditCommentDialog(Map<String, dynamic> report, _CommentEntry entry) async {
+    final controller = TextEditingController(text: entry.comment);
+    final theme = Theme.of(context);
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Edit Comment ${entry.number}'),
+        content: TextField(
+          controller: controller,
+          minLines: 3,
+          maxLines: 5,
+          decoration: InputDecoration(
+            hintText: 'Update comment...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              await _updateComment(
+                report['id'].toString(),
+                entry.number,
+                controller.text.trim(),
+              );
+              if (mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+            },
+            icon: Icon(Icons.save, color: theme.colorScheme.onPrimary),
+            label: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1123,4 +1401,24 @@ class _CommentsDialogState extends State<_CommentsDialog> {
       ],
     );
   }
+}
+
+class _CommentEntry {
+  final int number;
+  final String comment;
+
+  const _CommentEntry({
+    required this.number,
+    required this.comment,
+  });
+}
+
+class _ParsedComment {
+  final String? timestamp;
+  final String body;
+
+  const _ParsedComment({
+    required this.timestamp,
+    required this.body,
+  });
 }
